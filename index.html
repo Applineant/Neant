@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NÉANT. — Achetez du Rien</title>
+    <!-- Integration Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+
+        :root {
+            --bg: #0d0d0d;
+            --card-bg: #161616;
+            --border: #2a2a2a;
+            --text: #f0f0f0;
+            --dim: #888888;
+            --accent: #ffffff;
+        }
+/* Améliorations spécifiques au mobile */
+body {
+    -webkit-tap-highlight-color: transparent; /* Supprime le carré gris moche au tap sur iOS */
+}
+
+.btn-buy, .card {
+    touch-action: manipulation; /* Accélère le clic sur écran tactile en supprimant le délai de 300ms */
+}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            letter-spacing: 4px;
+            font-weight: 900;
+            margin-bottom: 10px;
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            color: var(--dim);
+            line-height: 1.5;
+            max-width: 420px;
+            margin: 0 auto 25px auto;
+        }
+
+        .products {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: #1c1c1c;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover, .card.selected {
+            border-color: var(--accent);
+            background: #222222;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .title {
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        .price {
+            font-family: monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .desc {
+            font-size: 0.8rem;
+            color: var(--dim);
+            line-height: 1.3;
+        }
+
+        .btn-buy {
+            width: 100%;
+            padding: 16px;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.1s ease, opacity 0.2s ease;
+        }
+
+        .btn-buy:hover {
+            opacity: 0.9;
+        }
+
+        .btn-buy:active {
+            transform: scale(0.98);
+        }
+
+        /* Modales */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #181818;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        #card-element {
+            background: #ffffff;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .leaderboard-box {
+            margin-top: 30px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+            text-align: left;
+        }
+
+        .leaderboard-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--dim);
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            padding: 6px 0;
+            border-bottom: 1px dashed #222;
+        }
+
+        .rank { color: var(--dim); width: 25px; }
+        .rank-1 { color: #ffd700; font-weight: bold; }
+        .user-name { flex-grow: 1; }
+        .user-tag { color: var(--dim); font-size: 0.75rem; margin-left: 4px; }
+        .amount-spent { font-family: monospace; font-weight: bold; }
+
+        /* Facture */
+        .invoice-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+
+        .invoice-total {
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+
+        .input-pseudo {
+            width: 100%;
+            padding: 10px;
+            background: #111;
+            border: 1px solid var(--border);
+            color: #fff;
+            border-radius: 6px;
+            margin: 12px 0;
+            font-size: 0.85rem;
+        }
+
+        /* Partage */
+        .share-box {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border);
+        }
+
+        .share-title { font-size: 0.75rem; color: var(--dim); margin-bottom: 10px; }
+        
+        .btn-share {
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+        }
+
+        .btn-tw { background: #000; border: 1px solid #333; }
+        .btn-wa { background: #25D366; color: #000; }
+
+        /* Lecteur */
+        .player-bar {
+            width: 100%;
+            height: 4px;
+            background: #333;
+            border-radius: 2px;
+            margin: 15px 0 8px 0;
+            overflow: hidden;
+        }
+
+        .player-progress {
+            height: 100%;
+            background: #fff;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>NÉANT.</h1>
+        
+        <div class="tagline">
+            Marre d'investir dans des placements qui rapportent des miettes&nbsp;? Vous avez tout perdu en vous prenant pour un trader de crypto ou d'actions&nbsp;?<br><br>
+            <strong>Achetez du NÉANT.</strong><br>
+            <span style="font-style: italic; color: var(--dim);">Le seul concept où c'est VOUS qui décidez exactement combien vous voulez perdre.</span>
+        </div>
+
+        <div class="products">
+            <div class="card selected" onclick="selectTier(this, 'Achat Initial de Néant', '1.00', false)">
+                <div class="card-header">
+                    <div class="title">1 € POUR DU RIEN</div>
+                    <div class="price">1,00 €</div>
+                </div>
+                <div class="desc">1€ pour du rien, on sait faire. Vous payez 1€, on ne vous donne rien. Honnêteté absolue.</div>
+            </div>
+
+            <div class="card" onclick="selectTier(this, 'Cadeau d\'Anniversaire Néant', '2.50', true)">
+                <div class="card-header">
+                    <div class="title">🎂 CADEAU D'ANNIVERSAIRE</div>
+                    <div class="price">2,50 €</div>
+                </div>
+                <div class="desc">Offrir un rien d'anniversaire ? Pas de souci, on s'en occupe ! Le cadeau ultime pour celui qui a déjà tout.</div>
+            </div>
+
+            <div class="card" onclick="selectTier(this, 'Flex Dopaminergique', '5.00', false)">
+                <div class="card-header">
+                    <div class="title">⚡ SHOT DE DOPAMINE</div>
+                    <div class="price">5,00 €</div>
+                </div>
+                <div class="desc">Un besoin de dopamine important ? Achetez donc 5€ de néant. Le plaisir de l'achat sans l'encombrement.</div>
+            </div>
+        </div>
+
+        <button class="btn-buy" onclick="openPaymentModal(initialPrice)">Acheter <span id="btn-price">1.00</span> € de Néant 💸</button>
+
+        <div class="leaderboard-box">
+            <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
+            <div id="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <!-- MODALE 1: PAIEMENT STRIPE -->
+    <div id="payment-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Paiement Sécurisé</h3>
+            <p style="font-size:0.8rem; color:var(--dim); margin-top:4px;">Montant débité : <strong id="pay-amount-display" style="color:#fff;">1.00 €</strong></p>
+            
+            <div id="card-element"></div>
+            <div id="card-errors" style="color: #fa755a; font-size:0.75rem; margin-bottom:10px;"></div>
+
+            <button id="submit-pay-btn" class="btn-buy" onclick="processStripePayment()">Valider le paiement</button>
+            <button onclick="closePaymentModal()" style="background:none; border:none; color:var(--dim); margin-top:10px; font-size:0.8rem; cursor:pointer;">Annuler</button>
+        </div>
+    </div>
+
+    <!-- MODALE 2: EXPÉRIENCE / PLAYER SILENCE -->
+    <div id="player-modal" class="modal-overlay">
+        <div class="modal">
+            <div id="gift-step">
+                <div id="gift-icon" style="font-size: 3rem; margin-bottom:10px;">🎁</div>
+                <h3 id="gift-title">UN CADEAU POUR VOUS</h3>
+                <p id="gift-message" style="font-size:0.85rem; color:var(--dim); margin: 10px 0 20px 0;">
+                    Pour vous remercier d'avoir dépensé votre argent dans absolument rien, voici votre récompense exclusive.
+                </p>
+                <button class="btn-buy" onclick="unpackGift()">Déballer mon cadeau</button>
+            </div>
+
+            <div id="player-step" style="display:none;">
+                <span id="player-subtitle" style="font-size:0.7rem; color:var(--dim); letter-spacing:1px; text-transform:uppercase;">Livraison en cours</span>
+                <h3 id="track-title" style="margin-top:5px;">5 SECONDES DE NÉANT</h3>
+                <p id="track-sub" style="font-size:0.8rem; color:var(--dim);">Audio Ultra HD — Silence Pur</p>
+
+                <div class="player-bar">
+                    <div id="progress" class="player-progress"></div>
+                </div>
+                <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--dim);">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:05</span>
+                </div>
+
+                <button id="play-btn" onclick="startSilenceStream()" style="margin-top:15px; background:#fff; border:none; width:50px; height:50px; border-radius:50%; font-size:1.2rem; cursor:pointer;">▶</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE 3: FACTURE & DÉCLARATION -->
+    <div id="invoice-modal" class="modal-overlay">
+        <div class="modal">
+            <div style="font-size:0.7rem; color:var(--dim); letter-spacing:1px;">TRANSACTION CONFIRMÉE</div>
+            <h2 style="margin: 5px 0 15px 0;">REÇU NÉANT</h2>
+
+            <div id="invoice-items"></div>
+
+            <div class="invoice-total">
+                <span>TOTAL PERDU</span>
+                <span id="inv-total">1.00 €</span>
+            </div>
+
+            <div style="margin-top:15px; text-align:left;">
+                <label style="font-size:0.75rem; color:var(--dim);">Votre pseudonyme au classement :</label>
+                <input type="text" id="user-pseudo" class="input-pseudo" placeholder="Ex: Mécène_Anonyme">
+            </div>
+
+            <div style="margin: 10px 0;">
+                <button class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border); margin-bottom:8px;" onclick="openPaymentModal(1.00, true)">⚡ Recharger 10s de rien (+1,00 €)</button>
+            </div>
+
+            <!-- Partage Réseaux Sociaux -->
+            <div class="share-box">
+                <div class="share-title">📢 Proclamer votre futilité</div>
+                <div class="share-btns" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <a id="share-tw" target="_blank" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="share-wa" target="_blank" class="btn-share btn-wa">WhatsApp</a>
+                    <button onclick="copyForInstaTikTok('Instagram')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                </div>
+                <div id="copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;">
+                    ✨ Texte copié ! Redirection en cours...
+                </div>
+            </div>
+
+            <button class="btn-buy" style="margin-top:15px;" onclick="closeAndSaveLeaderboard()">Fermer et enregistrer</button>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================================
+        // INITIALISATION STRIPE (Remplacer la clé publique ici)
+        // =========================================================================
+        const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ'); 
+        
+        const elements = stripe.elements();
+        const cardElement = elements.create('card', {
+            style: {
+                base: {
+                    color: '#000000',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    fontSmoothing: 'antialiased',
+                    fontSize: '16px',
+                    '::placeholder': { color: '#aab7c4' }
+                },
+                invalid: { color: '#fa755a', iconColor: '#fa755a' }
+            }
+        });
+        cardElement.mount('#card-element');
+
+        let selectedItemName = "Achat Initial de Néant";
+        let initialPrice = 1.00;
+        let pendingAmount = 1.00;
+        let isBirthday = false;
+        let isUpsell = false;
+        let purchases = [];
+        let invoiceNumber = Math.floor(1000 + Math.random() * 9000);
+        let currentDuration = 5;
+
+        let userUniqueKey = localStorage.getItem('neant_user_key') || '#' + Math.floor(1000 + Math.random() * 9000);
+        localStorage.setItem('neant_user_key', userUniqueKey);
+
+        let leaderboard = [
+            { key: "#8812", name: "L_Acheteur_Inconnu", amount: 42.00 },
+            { key: "#3319", name: "Collectionneur_De_Rien", amount: 18.00 },
+            { key: "#9901", name: "Philosophe_Du_Vide", amount: 12.00 },
+            { key: "#1042", name: "Minimaliste_Extreme", amount: 6.00 }
+        ];
+
+        function renderLeaderboard() {
+            const listEl = document.getElementById('leaderboard-list');
+            listEl.innerHTML = '';
+            leaderboard.sort((a, b) => b.amount - a.amount);
+
+            leaderboard.slice(0, 5).forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'leaderboard-item';
+                row.innerHTML = `
+                    <span class="rank ${index === 0 ? 'rank-1' : ''}">#${index + 1}</span>
+                    <span class="user-name">${item.name}<span class="user-tag">${item.key}</span></span>
+                    <span class="amount-spent">${item.amount.toFixed(2)} €</span>
+                `;
+                listEl.appendChild(row);
+            });
+        }
+
+        function selectTier(element, name, price, birthday) {
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedItemName = name;
+            initialPrice = parseFloat(price);
+            isBirthday = birthday;
+            document.getElementById('btn-price').innerText = price;
+        }
+
+        function openPaymentModal(amount, upsell = false) {
+            pendingAmount = amount;
+            isUpsell = upsell;
+            document.getElementById('pay-amount-display').innerText = amount.toFixed(2) + " €";
+            document.getElementById('invoice-modal').style.display = 'none';
+            document.getElementById('payment-modal').style.display = 'flex';
+        }
+
+        function closePaymentModal() {
+            document.getElementById('payment-modal').style.display = 'none';
+        }
+
+        async function processStripePayment() {
+            const btn = document.getElementById('submit-pay-btn');
+            btn.disabled = true;
+            btn.innerText = "Traitement bancaire...";
+
+            try {
+                const response = await fetch('http://localhost:3000/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: pendingAmount })
+                });
+                const data = await response.json();
+
+                const result = await stripe.confirmCardPayment(data.clientSecret, {
+                    payment_method: { card: cardElement }
+                });
+
+                if (result.error) {
+                    document.getElementById('card-errors').innerText = result.error.message;
+                    btn.disabled = false;
+                    btn.innerText = "Valider le paiement";
+                } else {
+                    if (result.paymentIntent.status === 'succeeded') {
+                        closePaymentModal();
+                        btn.disabled = false;
+                        btn.innerText = "Valider le paiement";
+
+                        if (!isUpsell) {
+                            purchases = [{ name: selectedItemName, detail: "5s de Silence HD", price: pendingAmount }];
+                            openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement');
+                        } else {
+                            purchases.push({ name: "Rallonge de Néant", detail: "10s de Silence Supérieur", price: pendingAmount });
+                            openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours');
+                        }
+                    }
+                }
+            } catch (err) {
+                document.getElementById('card-errors').innerText = "Erreur de connexion au serveur.";
+                btn.disabled = false;
+                btn.innerText = "Valider le paiement";
+            }
+        }
+
+        function openPlayer(duration, title, subtitle, topText) {
+            currentDuration = duration;
+            document.getElementById('player-subtitle').innerText = topText;
+            document.getElementById('track-title').innerText = title;
+            document.getElementById('track-sub').innerText = subtitle;
+            document.getElementById('total-time').innerText = duration < 10 ? `0:0${duration}` : `0:${duration}`;
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('current-time').innerText = '0:00';
+            document.getElementById('play-btn').innerText = '▶';
+            document.getElementById('play-btn').disabled = false;
+            
+            if(isBirthday) {
+                document.getElementById('gift-icon').innerText = "🎂";
+                document.getElementById('gift-title').innerText = "JOYEUX ANNIVERSAIRE !";
+                document.getElementById('gift-message').innerText = "C'est votre anniversaire ? Quelqu'un vous aime assez pour vous offrir l'élément le plus précieux au monde : absolument rien.";
+            } else if(isUpsell) {
+                document.getElementById('gift-icon').innerText = "⚡";
+                document.getElementById('gift-title').innerText = "RALLONGE DE NÉANT";
+                document.getElementById('gift-message').innerText = "Votre fidélité au vide est exemplaire. Voici vos 10 secondes supplémentaires de rien absolu.";
+            } else {
+                document.getElementById('gift-icon').innerText = "🎁";
+                document.getElementById('gift-title').innerText = "UN CADEAU POUR VOUS";
+                document.getElementById('gift-message').innerText = "Pour vous remercier d'avoir dépensé votre argent dans absolument rien, nous vous offrons votre cadeau.";
+            }
+
+            document.getElementById('gift-step').style.display = 'block';
+            document.getElementById('player-step').style.display = 'none';
+            
+            document.getElementById('player-modal').style.display = 'flex';
+        }
+
+        function unpackGift() {
+            document.getElementById('gift-step').style.display = 'none';
+            document.getElementById('player-step').style.display = 'block';
+        }
+
+        function startSilenceStream() {
+            const playBtn = document.getElementById('play-btn');
+            const progressBar = document.getElementById('progress');
+            const currentTimeEl = document.getElementById('current-time');
+            
+            playBtn.innerText = '⏸';
+            playBtn.disabled = true;
+
+            let elapsed = 0;
+            const interval = setInterval(() => {
+                elapsed += 0.1;
+                let percentage = (elapsed / currentDuration) * 100;
+                progressBar.style.width = percentage + '%';
+
+                let seconds = Math.floor(elapsed);
+                currentTimeEl.innerText = seconds < 10 ? `0:0${seconds}` : `0:${seconds}`;
+
+                if (elapsed >= currentDuration) {
+                    clearInterval(interval);
+                    document.getElementById('player-modal').style.display = 'none';
+                    renderAndShowInvoice();
+                }
+            }, 100);
+        }
+
+        function copyForInstaTikTok(platform) {
+            const totalSpent = purchases.reduce((sum, p) => sum + p.price, 0).toFixed(2);
+            const textToCopy = `Marre des placements qui rapportent des miettes ? Je viens d'acheter ${totalSpent}€ de NÉANT. La meilleure décision de ma vie. 💸🎁 #NEANT #AchatDuFutur`;
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const toast = document.getElementById('copy-toast');
+                toast.innerText = `✨ Texte copié ! Redirection vers ${platform}...`;
+                toast.style.display = 'block';
+
+                setTimeout(() => {
+                    if (platform === 'Instagram') {
+                        window.open('https://instagram.com', '_blank');
+                    } else if (platform === 'TikTok') {
+                        window.open('https://tiktok.com', '_blank');
+                    }
+                    toast.style.display = 'none';
+                }, 1000);
+            });
+        }
+
+        function renderAndShowInvoice() {
+            const itemsContainer = document.getElementById('invoice-items');
+            itemsContainer.innerHTML = '';
+            let total = 0;
+
+            purchases.forEach((p) => {
+                total += p.price;
+                const line = document.createElement('div');
+                line.className = 'invoice-line';
+                line.innerHTML = `
+                    <div>
+                        <div><strong>${p.name}</strong></div>
+                        <div style="font-size:0.7rem; color:#666;">${p.detail}</div>
+                    </div>
+                    <div>${p.price.toFixed(2)} €</div>
+                `;
+                itemsContainer.appendChild(line);
+            });
+
+            document.getElementById('inv-total').innerText = total.toFixed(2) + " €";
+
+            const savedName = localStorage.getItem('neant_user_name');
+            if (savedName) document.getElementById('user-pseudo').value = savedName;
+
+            // Liens directs Twitter & WhatsApp
+            const shareText = encodeURIComponent(`Marre des placements qui rapportent des miettes ? Je viens d'acheter ${total.toFixed(2)}€ de NÉANT. 📉💸 #NEANT`);
+            const shareUrl = encodeURIComponent(window.location.href);
+
+            document.getElementById('share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+            document.getElementById('share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+
+            document.getElementById('invoice-modal').style.display = 'flex';
+        }
+
+        function closeAndSaveLeaderboard() {
+            const pseudoInput = document.getElementById('user-pseudo').value.trim();
+            const finalPseudo = pseudoInput !== "" ? pseudoInput : "Mécène_Anonyme";
+            
+            localStorage.setItem('neant_user_name', finalPseudo);
+            let totalSpent = purchases.reduce((sum, p) => sum + p.price, 0);
+
+            const existingUser = leaderboard.find(user => user.key === userUniqueKey);
+
+            if (existingUser) {
+                existingUser.amount += totalSpent;
+                existingUser.name = finalPseudo;
+            } else {
+                leaderboard.push({ key: userUniqueKey, name: finalPseudo, amount: totalSpent });
+            }
+
+            renderLeaderboard();
+            document.getElementById('invoice-modal').style.display = 'none';
+        }
+
+        renderLeaderboard();
+    </script>
+</body>
+</html>
