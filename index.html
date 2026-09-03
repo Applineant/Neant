@@ -7,7 +7,6 @@
     <!-- Integration Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
     <style>
-
         :root {
             --bg: #0d0d0d;
             --card-bg: #161616;
@@ -16,22 +15,9 @@
             --dim: #888888;
             --accent: #ffffff;
         }
-/* Améliorations spécifiques au mobile */
-body {
-    -webkit-tap-highlight-color: transparent; /* Supprime le carré gris moche au tap sur iOS */
-}
-
-.btn-buy, .card {
-    touch-action: manipulation; /* Accélère le clic sur écran tactile en supprimant le délai de 300ms */
-}
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
 
         body {
+            -webkit-tap-highlight-color: transparent;
             background-color: var(--bg);
             color: var(--text);
             display: flex;
@@ -39,6 +25,17 @@ body {
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+        }
+
+        .btn-buy, .card {
+            touch-action: manipulation;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         .container {
@@ -156,11 +153,9 @@ body {
             text-align: center;
         }
 
-        #card-element {
-            background: #ffffff;
-            padding: 12px;
-            border-radius: 8px;
+        #payment-element {
             margin: 20px 0;
+            text-align: left;
         }
 
         .leaderboard-box {
@@ -316,7 +311,7 @@ body {
             <h3>Paiement Sécurisé</h3>
             <p style="font-size:0.8rem; color:var(--dim); margin-top:4px;">Montant débité : <strong id="pay-amount-display" style="color:#fff;">1.00 €</strong></p>
             
-            <div id="card-element"></div>
+            <div id="payment-element"></div>
             <div id="card-errors" style="color: #fa755a; font-size:0.75rem; margin-bottom:10px;"></div>
 
             <button id="submit-pay-btn" class="btn-buy" onclick="processStripePayment()">Valider le paiement</button>
@@ -395,26 +390,10 @@ body {
     </div>
 
     <script>
-        // =========================================================================
-        // INITIALISATION STRIPE (Remplacer la clé publique ici)
-        // =========================================================================
         const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ'); 
         
-        const elements = stripe.elements();
-        const cardElement = elements.create('card', {
-            style: {
-                base: {
-                    color: '#000000',
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    fontSmoothing: 'antialiased',
-                    fontSize: '16px',
-                    '::placeholder': { color: '#aab7c4' }
-                },
-                invalid: { color: '#fa755a', iconColor: '#fa755a' }
-            }
-        });
-        cardElement.mount('#card-element');
-
+        let elements;
+        let paymentElement;
         let selectedItemName = "Achat Initial de Néant";
         let initialPrice = 1.00;
         let pendingAmount = 1.00;
@@ -460,12 +439,44 @@ body {
             document.getElementById('btn-price').innerText = price;
         }
 
-        function openPaymentModal(amount, upsell = false) {
+        async function openPaymentModal(amount, upsell = false) {
             pendingAmount = amount;
             isUpsell = upsell;
             document.getElementById('pay-amount-display').innerText = amount.toFixed(2) + " €";
+            document.getElementById('card-errors').innerText = "";
             document.getElementById('invoice-modal').style.display = 'none';
             document.getElementById('payment-modal').style.display = 'flex';
+
+            const btn = document.getElementById('submit-pay-btn');
+            btn.disabled = true;
+            btn.innerText = "Chargement des moyens de paiement...";
+
+            try {
+                const response = await fetch('/create-payment-intent', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount: pendingAmount })
+                });
+                const data = await response.json();
+
+                if (data.error) {
+                    document.getElementById('card-errors').innerText = data.error;
+                    return;
+                }
+
+                const appearance = { theme: 'night' };
+                elements = stripe.elements({ clientSecret: data.clientSecret, appearance });
+
+                if (paymentElement) paymentElement.unmount();
+
+                paymentElement = elements.create('payment');
+                paymentElement.mount('#payment-element');
+
+                btn.disabled = false;
+                btn.innerText = "Valider le paiement";
+            } catch (err) {
+                document.getElementById('card-errors').innerText = "Erreur lors de la connexion avec le serveur.";
+            }
         }
 
         function closePaymentModal() {
@@ -475,43 +486,29 @@ body {
         async function processStripePayment() {
             const btn = document.getElementById('submit-pay-btn');
             btn.disabled = true;
-            btn.innerText = "Traitement bancaire...";
+            btn.innerText = "Traitement en cours...";
 
-            try {
-                const response = await fetch('http://localhost:3000/create-payment-intent', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: pendingAmount })
-                });
-                const data = await response.json();
+            const { error, paymentIntent } = await stripe.confirmPayment({
+                elements,
+                redirect: 'if_required'
+            });
 
-                const result = await stripe.confirmCardPayment(data.clientSecret, {
-                    payment_method: { card: cardElement }
-                });
-
-                if (result.error) {
-                    document.getElementById('card-errors').innerText = result.error.message;
-                    btn.disabled = false;
-                    btn.innerText = "Valider le paiement";
-                } else {
-                    if (result.paymentIntent.status === 'succeeded') {
-                        closePaymentModal();
-                        btn.disabled = false;
-                        btn.innerText = "Valider le paiement";
-
-                        if (!isUpsell) {
-                            purchases = [{ name: selectedItemName, detail: "5s de Silence HD", price: pendingAmount }];
-                            openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement');
-                        } else {
-                            purchases.push({ name: "Rallonge de Néant", detail: "10s de Silence Supérieur", price: pendingAmount });
-                            openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours');
-                        }
-                    }
-                }
-            } catch (err) {
-                document.getElementById('card-errors').innerText = "Erreur de connexion au serveur.";
+            if (error) {
+                document.getElementById('card-errors').innerText = error.message;
                 btn.disabled = false;
                 btn.innerText = "Valider le paiement";
+            } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                closePaymentModal();
+                btn.disabled = false;
+                btn.innerText = "Valider le paiement";
+
+                if (!isUpsell) {
+                    purchases = [{ name: selectedItemName, detail: "5s de Silence HD", price: pendingAmount }];
+                    openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement');
+                } else {
+                    purchases.push({ name: "Rallonge de Néant", detail: "10s de Silence Supérieur", price: pendingAmount });
+                    openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours');
+                }
             }
         }
 
@@ -542,7 +539,6 @@ body {
 
             document.getElementById('gift-step').style.display = 'block';
             document.getElementById('player-step').style.display = 'none';
-            
             document.getElementById('player-modal').style.display = 'flex';
         }
 
@@ -620,7 +616,6 @@ body {
             const savedName = localStorage.getItem('neant_user_name');
             if (savedName) document.getElementById('user-pseudo').value = savedName;
 
-            // Liens directs Twitter & WhatsApp
             const shareText = encodeURIComponent(`Marre des placements qui rapportent des miettes ? Je viens d'acheter ${total.toFixed(2)}€ de NÉANT. 📉💸 #NEANT`);
             const shareUrl = encodeURIComponent(window.location.href);
 
