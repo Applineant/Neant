@@ -17,10 +17,26 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Whitelist des tarifs autorisés (en euros). Le client n'envoie plus jamais
+// le montant : il envoie un identifiant "tier", et c'est le serveur seul
+// qui décide du prix réel facturé.
+const TIERS = {
+    base:     1.00,
+    birthday: 2.50,
+    dopamine: 5.00,
+    upsell:   1.00
+};
+
 // Endpoint pour générer le paiement Stripe
 app.post('/create-payment-intent', async (req, res) => {
     try {
-        const { amount } = req.body;
+        const { tier } = req.body;
+        const amount = TIERS[tier];
+
+        if (!amount) {
+            return res.status(400).send({ error: 'Tier invalide.' });
+        }
+
         const paymentIntent = await stripe.paymentIntents.create({
             amount: Math.round(amount * 100),
             currency: 'eur',
