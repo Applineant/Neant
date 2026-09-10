@@ -895,13 +895,7 @@
 
                 const blob = await response.blob();
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'certificat-neant.pdf';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(url);
+                window.open(url, '_blank');
 
                 lastCertShareText = `Je viens d'obtenir mon Certificat officiel de Néant sur NÉANT. 📜 La preuve que j'ai payé pour ne rien recevoir. #NEANT`;
                 const shareText = encodeURIComponent(lastCertShareText);
