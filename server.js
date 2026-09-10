@@ -53,12 +53,13 @@ function saveUsers(data) {
 function findOrCreateUser(users, userKey) {
     let user = users.find(u => u.key === userKey);
     if (!user) {
-        user = { key: userKey, name: 'Mécène_Anonyme', amount: 0, purchaseBadges: [], voidMaxSeconds: 0, voidBadges: [] };
+        user = { key: userKey, name: 'Mécène_Anonyme', amount: 0, purchaseBadges: [], voidMaxSeconds: 0, voidBadges: [], chaseBadges: [] };
         users.push(user);
     }
     if (!user.purchaseBadges) user.purchaseBadges = [];
     if (!user.voidBadges) user.voidBadges = [];
     if (!user.voidMaxSeconds) user.voidMaxSeconds = 0;
+    if (!user.chaseBadges) user.chaseBadges = [];
     return user;
 }
 
@@ -123,6 +124,17 @@ function computeNewVoidBadges(user) {
         }
     }
     return unlocked;
+}
+
+// --- Badge de la Chasse au Rien (attrapé une seule fois, débloqué au premier succès) ---
+const CHASE_BADGE = { id: 'chase', name: 'Chasseur du Vide' };
+
+function computeNewChaseBadge(user) {
+    if (!user.chaseBadges.includes(CHASE_BADGE.id)) {
+        user.chaseBadges.push(CHASE_BADGE.id);
+        return [CHASE_BADGE];
+    }
+    return [];
 }
 
 function highestBadgeName(user) {
@@ -306,6 +318,27 @@ app.post('/void-time', (req, res) => {
         saveUsers(users);
 
         res.send({ voidMaxSeconds: user.voidMaxSeconds, newBadges });
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
+
+// Enregistre la capture du bouton "Rien" et débloque le badge associé.
+app.post('/chase-catch', (req, res) => {
+    try {
+        const { userKey, attempts } = req.body;
+
+        if (!userKey) {
+            return res.status(400).send({ error: 'userKey manquant.' });
+        }
+
+        let users = loadUsers();
+        const user = findOrCreateUser(users, userKey);
+
+        const newBadges = computeNewChaseBadge(user);
+        saveUsers(users);
+
+        res.send({ newBadges });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }

@@ -301,6 +301,8 @@
 
         <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openVoidScreen()">🕳️ Cliquez ici pour ne rien voir</button>
 
+        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openChaseGame()">🎯 Chassez le Rien</button>
+
         <div class="leaderboard-box">
             <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
             <div id="leaderboard-list"></div>
@@ -330,6 +332,45 @@
                 <button onclick="copyForInstaTikTok('TikTok', lastVoidShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
             </div>
             <button class="btn-buy" style="margin-top:15px;" onclick="closeVoidResultModal()">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODALE : CHASSE AU RIEN (mini-jeu) -->
+    <div id="chase-modal" class="modal-overlay">
+        <div class="modal" style="max-width:420px;">
+            <div id="chase-game-step">
+                <h3>🎯 CHASSEZ LE RIEN</h3>
+                <p style="font-size:0.8rem; color:var(--dim); margin:8px 0 15px 0;">
+                    Essayez d'attraper le bouton. Bonne chance : c'est du Néant, il n'aime pas se laisser saisir.
+                </p>
+                <p style="font-size:0.75rem; color:var(--dim); margin-bottom:8px;">
+                    Tentatives ratées : <strong id="chase-attempts" style="color:#fff;">0</strong>
+                </p>
+                <div id="chase-area" style="position:relative; width:100%; height:260px; background:#0a0a0a; border:1px solid var(--border); border-radius:10px; overflow:hidden;">
+                    <button id="chase-target" class="btn-buy" style="position:absolute; width:130px; padding:12px 0; top:110px; left:calc(50% - 65px);">Cliquez ici</button>
+                </div>
+                <button onclick="closeChaseGame()" style="background:none; border:none; color:var(--dim); margin-top:15px; font-size:0.8rem; cursor:pointer;">Abandonner la chasse</button>
+            </div>
+
+            <div id="chase-result-step" style="display:none;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">🎯</div>
+                <h3>BRAVO</h3>
+                <p style="font-size:0.9rem; color:var(--dim); margin:12px 0;">
+                    Tu as réussi à ne rien obtenir, après <strong id="chase-final-attempts" style="color:#fff;">0</strong> tentative(s) ratée(s). Un exploit d'une inutilité rare.
+                </p>
+                <div id="chase-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px;">
+                    <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px;">Nouveau badge débloqué</div>
+                    <div id="chase-badge-name" style="font-size:1.2rem; font-weight:bold; margin-top:6px;"></div>
+                </div>
+                <div class="share-btns" id="chase-share-btns" style="display:none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                    <a id="chase-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="chase-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="chase-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
+                    <button onclick="copyForInstaTikTok('Instagram', lastChaseShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastChaseShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                </div>
+                <button class="btn-buy" style="margin-top:15px;" onclick="closeChaseGame()">Fermer</button>
+            </div>
         </div>
     </div>
 
@@ -859,6 +900,100 @@
         }
 
         document.getElementById('void-screen').addEventListener('click', closeVoidScreen);
+
+        // --- Mini-jeu : Chasse au Rien ---
+        let chaseAttempts = 0;
+        let chaseCaught = false;
+        let lastChaseShareText = '';
+        const CHASE_CATCH_THRESHOLD = 15; // nombre d'esquives avant que le bouton se laisse attraper
+
+        function openChaseGame() {
+            chaseAttempts = 0;
+            chaseCaught = false;
+            document.getElementById('chase-attempts').innerText = '0';
+            document.getElementById('chase-game-step').style.display = 'block';
+            document.getElementById('chase-result-step').style.display = 'none';
+            document.getElementById('chase-badge-box').style.display = 'none';
+            document.getElementById('chase-share-btns').style.display = 'none';
+            positionChaseTarget();
+            document.getElementById('chase-modal').style.display = 'flex';
+        }
+
+        function closeChaseGame() {
+            document.getElementById('chase-modal').style.display = 'none';
+        }
+
+        function positionChaseTarget() {
+            const area = document.getElementById('chase-area');
+            const target = document.getElementById('chase-target');
+            const maxX = area.clientWidth - target.offsetWidth - 10;
+            const maxY = area.clientHeight - target.offsetHeight - 10;
+            const x = Math.max(10, Math.floor(Math.random() * maxX));
+            const y = Math.max(10, Math.floor(Math.random() * maxY));
+            target.style.left = x + 'px';
+            target.style.top = y + 'px';
+        }
+
+        function dodgeChaseTarget() {
+            if (chaseCaught) return;
+            chaseAttempts++;
+            document.getElementById('chase-attempts').innerText = chaseAttempts;
+            positionChaseTarget();
+        }
+
+        async function catchChaseTarget() {
+            if (chaseCaught) return;
+            chaseCaught = true;
+
+            document.getElementById('chase-game-step').style.display = 'none';
+            document.getElementById('chase-result-step').style.display = 'block';
+            document.getElementById('chase-final-attempts').innerText = chaseAttempts;
+
+            try {
+                const response = await fetch('/chase-catch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userKey: userUniqueKey, attempts: chaseAttempts })
+                });
+                const data = await response.json();
+
+                if (data.newBadges && data.newBadges.length > 0) {
+                    const badge = data.newBadges[data.newBadges.length - 1];
+                    document.getElementById('chase-badge-name').innerText = `🎯 ${badge.name}`;
+                    document.getElementById('chase-badge-box').style.display = 'block';
+
+                    lastChaseShareText = `Je viens de devenir "${badge.name}" sur NÉANT en attrapant le Rien après ${chaseAttempts} tentatives ratées. 🎯 #NEANT`;
+                    const shareText = encodeURIComponent(lastChaseShareText);
+                    const shareUrl = encodeURIComponent(window.location.href);
+
+                    document.getElementById('chase-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                    document.getElementById('chase-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                    document.getElementById('chase-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+                    document.getElementById('chase-share-btns').style.display = 'grid';
+                }
+            } catch (err) {
+                // Pas grave si l'enregistrement échoue.
+            }
+        }
+
+        document.getElementById('chase-target').addEventListener('mouseenter', () => {
+            // Sur ordinateur : le bouton s'enfuit dès que le curseur l'approche.
+            if (chaseAttempts < CHASE_CATCH_THRESHOLD) {
+                dodgeChaseTarget();
+            } else {
+                catchChaseTarget();
+            }
+        });
+
+        document.getElementById('chase-target').addEventListener('click', (e) => {
+            // Sur mobile (pas de survol) : le clic déclenche l'esquive ou la capture.
+            e.preventDefault();
+            if (chaseAttempts < CHASE_CATCH_THRESHOLD) {
+                dodgeChaseTarget();
+            } else {
+                catchChaseTarget();
+            }
+        });
 
         fetchLeaderboard();
     </script>
