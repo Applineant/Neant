@@ -1055,19 +1055,26 @@
                 });
                 const data = await response.json();
 
+                lastVoidShareText = `J'ai contemplé le Vide pendant ${durationText} sur NÉANT. 🕳️ Pour rien. #NEANT`;
+                const shareText = encodeURIComponent(lastVoidShareText);
+                const shareUrl = encodeURIComponent(window.location.href);
+
+                document.getElementById('void-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                document.getElementById('void-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                document.getElementById('void-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+                shareBtns.style.display = 'grid';
+
                 if (data.newBadges && data.newBadges.length > 0) {
                     const badge = data.newBadges[data.newBadges.length - 1];
                     document.getElementById('void-badge-name').innerText = `🕳️ ${badge.name}`;
                     badgeBox.style.display = 'block';
 
                     lastVoidShareText = `Je viens de devenir "${badge.name}" en contemplant le Vide sur NÉANT. 🕳️ ${durationText} passées à ne rien regarder. #NEANT`;
-                    const shareText = encodeURIComponent(lastVoidShareText);
-                    const shareUrl = encodeURIComponent(window.location.href);
+                    const badgeShareText = encodeURIComponent(lastVoidShareText);
 
-                    document.getElementById('void-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
-                    document.getElementById('void-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
-                    document.getElementById('void-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
-                    shareBtns.style.display = 'grid';
+                    document.getElementById('void-share-tw').href = `https://twitter.com/intent/tweet?text=${badgeShareText}&url=${shareUrl}`;
+                    document.getElementById('void-share-wa').href = `https://api.whatsapp.com/send?text=${badgeShareText}%20${shareUrl}`;
+                    document.getElementById('void-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${badgeShareText}`;
                 }
             } catch (err) {
                 // Pas grave si l'enregistrement échoue, on affiche quand même le résultat.
@@ -1195,6 +1202,7 @@
                 document.getElementById('shake-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
                 document.getElementById('shake-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
                 document.getElementById('shake-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+                document.getElementById('shake-share-btns').style.display = 'grid';
 
                 if (data.newBadges && data.newBadges.length > 0) {
                     const badge = data.newBadges[data.newBadges.length - 1];
