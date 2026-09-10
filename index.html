@@ -16,6 +16,10 @@
             --accent: #ffffff;
         }
 
+        html {
+            overflow-x: hidden;
+        }
+
         body {
             -webkit-tap-highlight-color: transparent;
             background-color: var(--bg);
@@ -25,6 +29,7 @@
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+            overflow-x: hidden;
         }
 
         .btn-buy, .card {
@@ -150,6 +155,8 @@
             padding: 24px;
             width: 100%;
             max-width: 400px;
+            max-height: 85vh;
+            overflow-y: auto;
             text-align: center;
         }
 
@@ -583,6 +590,7 @@
         let pendingTier = 'base';
         let purchases = [];
         let lastPaymentIntentId = null;
+        let sessionPaymentIntentIds = [];
         let invoiceNumber = Math.floor(1000 + Math.random() * 9000);
         let currentDuration = 5;
 
@@ -738,9 +746,11 @@
 
                 if (!tier.upsell) {
                     purchases = [{ name: tier.name, detail: "5s de Silence HD", price: tier.price }];
+                    sessionPaymentIntentIds = [paymentIntent.id];
                     openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement', pendingTier);
                 } else {
                     purchases.push({ name: tier.name, detail: "10s de Silence Supérieur", price: tier.price });
+                    sessionPaymentIntentIds.push(paymentIntent.id);
                     openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours', pendingTier);
                 }
             }
@@ -925,30 +935,46 @@
             if (btn) { btn.disabled = true; btn.innerText = "Enregistrement..."; }
 
             let newBadges = [];
+            let finalName = null;
+
+            // On envoie chaque paiement de la session (achat de base + éventuel(s)
+            // upsell) séparément, pour que le montant total payé soit bien crédité
+            // au classement — pas seulement le dernier paiement effectué.
+            const idsToSave = sessionPaymentIntentIds.length > 0 ? sessionPaymentIntentIds : [lastPaymentIntentId];
 
             try {
-                const response = await fetch('/leaderboard', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        paymentIntentId: lastPaymentIntentId,
-                        userKey: userUniqueKey,
-                        pseudo: desiredPseudo
-                    })
-                });
-                const data = await response.json();
+                for (const paymentIntentId of idsToSave) {
+                    if (!paymentIntentId) continue;
 
-                if (data.finalName) {
+                    const response = await fetch('/leaderboard', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            paymentIntentId,
+                            userKey: userUniqueKey,
+                            pseudo: desiredPseudo
+                        })
+                    });
+                    const data = await response.json();
+
+                    if (data.finalName) {
+                        finalName = data.finalName;
+                        if (data.leaderboard) leaderboard = data.leaderboard;
+                    }
+                    if (Array.isArray(data.newBadges)) newBadges = newBadges.concat(data.newBadges);
+                }
+
+                if (finalName) {
                     // Le serveur peut avoir modifié le pseudo (ex: #1234 en
                     // suffixe) s'il était déjà pris par quelqu'un d'autre.
-                    localStorage.setItem('neant_user_name', data.finalName);
-                    if (data.leaderboard) leaderboard = data.leaderboard;
+                    localStorage.setItem('neant_user_name', finalName);
                 }
-                if (Array.isArray(data.newBadges)) newBadges = data.newBadges;
             } catch (err) {
                 // Le classement n'a pas pu être mis à jour ; on n'empêche
                 // pas l'utilisateur de fermer sa facture pour autant.
             }
+
+            sessionPaymentIntentIds = [];
 
             renderLeaderboard();
 
@@ -1154,6 +1180,7 @@
             document.getElementById('badges-purchase-list').innerHTML = '<div style="font-size:0.8rem; color:var(--dim);">Chargement...</div>';
             document.getElementById('badges-void-list').innerHTML = '';
             document.getElementById('badges-chase-list').innerHTML = '';
+            document.getElementById('badges-click-list').innerHTML = '';
 
             try {
                 const response = await fetch('/my-badges?userKey=' + encodeURIComponent(userUniqueKey));
