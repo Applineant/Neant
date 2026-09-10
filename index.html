@@ -530,6 +530,13 @@
             <div style="margin: 10px 0;">
                 <button class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border); margin-bottom:8px;" onclick="openPaymentModal('upsell')">⚡ Recharger 10s de rien (+1,00 €)</button>
                 <button id="certificate-btn" class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border);" onclick="downloadCertificate()">📜 Télécharger mon certificat de Néant</button>
+                <div id="cert-share-btns" style="display:none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+                    <a id="cert-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="cert-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="cert-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
+                    <button onclick="copyForInstaTikTok('Instagram', lastCertShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastCertShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                </div>
             </div>
 
             <div id="purchase-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px; text-align:left;">
@@ -855,6 +862,7 @@
             document.getElementById('share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
 
             document.getElementById('purchase-badge-box').style.display = 'none';
+            document.getElementById('cert-share-btns').style.display = 'none';
 
             const closeBtn = document.getElementById('close-invoice-btn');
             if (closeBtn) {
@@ -864,6 +872,8 @@
 
             document.getElementById('invoice-modal').style.display = 'flex';
         }
+
+        let lastCertShareText = '';
 
         async function downloadCertificate() {
             if (!lastPaymentIntentId) return;
@@ -892,6 +902,15 @@
                 a.click();
                 a.remove();
                 URL.revokeObjectURL(url);
+
+                lastCertShareText = `Je viens d'obtenir mon Certificat officiel de Néant sur NÉANT. 📜 La preuve que j'ai payé pour ne rien recevoir. #NEANT`;
+                const shareText = encodeURIComponent(lastCertShareText);
+                const shareUrl = encodeURIComponent(window.location.href);
+
+                document.getElementById('cert-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                document.getElementById('cert-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                document.getElementById('cert-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+                document.getElementById('cert-share-btns').style.display = 'grid';
             } catch (err) {
                 alert("Impossible de générer le certificat pour l'instant.");
             } finally {
