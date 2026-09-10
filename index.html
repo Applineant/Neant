@@ -188,6 +188,19 @@
         .user-tag { color: var(--dim); font-size: 0.75rem; margin-left: 4px; }
         .amount-spent { font-family: monospace; font-weight: bold; }
 
+        .badge-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            font-size: 0.85rem;
+            border-bottom: 1px dashed #222;
+        }
+        .badge-row.locked { opacity: 0.4; }
+        .badge-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+        .badge-name { flex-grow: 1; }
+        .badge-status { font-size: 0.7rem; color: var(--dim); }
+
         /* Facture */
         .invoice-line {
             display: flex;
@@ -303,6 +316,8 @@
 
         <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openChaseGame()">🎯 Chassez le Rien</button>
 
+        <button class="btn-buy" style="background:#1c1c1c; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openMyBadges()">🏅 Mes badges</button>
+
         <div class="leaderboard-box">
             <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
             <div id="leaderboard-list"></div>
@@ -371,6 +386,27 @@
                 </div>
                 <button class="btn-buy" style="margin-top:15px;" onclick="closeChaseGame()">Fermer</button>
             </div>
+        </div>
+    </div>
+
+    <!-- MODALE : MES BADGES -->
+    <div id="badges-modal" class="modal-overlay">
+        <div class="modal" style="max-width:440px; max-height:80vh; overflow-y:auto;">
+            <h3>🏅 MES BADGES</h3>
+            <p style="font-size:0.75rem; color:var(--dim); margin:8px 0 18px 0;">Ta progression dans la futilité.</p>
+
+            <div style="text-align:left;">
+                <div class="leaderboard-title" style="margin-top:0;">💸 Achats</div>
+                <div id="badges-purchase-list"></div>
+
+                <div class="leaderboard-title" style="margin-top:20px;">🕳️ Contemplation du Vide</div>
+                <div id="badges-void-list"></div>
+
+                <div class="leaderboard-title" style="margin-top:20px;">🎯 Chasse au Rien</div>
+                <div id="badges-chase-list"></div>
+            </div>
+
+            <button class="btn-buy" style="margin-top:20px;" onclick="closeMyBadges()">Fermer</button>
         </div>
     </div>
 
@@ -467,7 +503,7 @@
 
     <script>
         // Remplace par ta propre clé publique Stripe (pk_live_... ou pk_test_...)
-        const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ');
+        const stripe = Stripe('pk_live_VOTRE_CLE_PUBLIQUE_ICI');
 
         // Les montants ne sont JAMAIS envoyés en clair depuis le client :
         // on envoie un identifiant de "tier", le serveur seul connaît le prix réel
@@ -994,6 +1030,58 @@
                 catchChaseTarget();
             }
         });
+
+        // --- Mes badges (progression) ---
+        function renderBadgeList(containerId, badges, currentValue, formatFn) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = badges.map(b => {
+                const icon = b.unlocked ? '🏆' : '🔒';
+                const status = b.unlocked
+                    ? 'Débloqué'
+                    : (typeof b.threshold === 'number' && formatFn ? `À atteindre : ${formatFn(b.threshold)}` : 'Verrouillé');
+                return `
+                    <div class="badge-row ${b.unlocked ? '' : 'locked'}">
+                        <span class="badge-icon">${icon}</span>
+                        <span class="badge-name">${escapeHtml(b.name)}</span>
+                        <span class="badge-status">${status}</span>
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof currentValue !== 'undefined') {
+                const progressLine = document.createElement('div');
+                progressLine.style.cssText = 'font-size:0.75rem; color:var(--dim); margin-top:8px;';
+                progressLine.innerText = currentValue;
+                container.appendChild(progressLine);
+            }
+        }
+
+        async function openMyBadges() {
+            document.getElementById('badges-modal').style.display = 'flex';
+            document.getElementById('badges-purchase-list').innerHTML = '<div style="font-size:0.8rem; color:var(--dim);">Chargement...</div>';
+            document.getElementById('badges-void-list').innerHTML = '';
+            document.getElementById('badges-chase-list').innerHTML = '';
+
+            try {
+                const response = await fetch('/my-badges?userKey=' + encodeURIComponent(userUniqueKey));
+                const data = await response.json();
+
+                renderBadgeList('badges-purchase-list', data.purchase, `Total dépensé actuel : ${data.amount.toFixed(2)} €`, (t) => t === 0 ? '1er achat' : t + ' €');
+
+                const minutes = Math.floor(data.voidMaxSeconds / 60);
+                const secs = data.voidMaxSeconds % 60;
+                const voidCurrent = `Meilleur temps actuel : ${minutes > 0 ? minutes + ' min ' + secs + ' s' : secs + ' s'}`;
+                renderBadgeList('badges-void-list', data.void, voidCurrent, (t) => t < 60 ? t + ' s' : Math.floor(t / 60) + ' min');
+
+                renderBadgeList('badges-chase-list', data.chase);
+            } catch (err) {
+                document.getElementById('badges-purchase-list').innerHTML = '<div style="font-size:0.8rem; color:var(--dim);">Impossible de charger la progression.</div>';
+            }
+        }
+
+        function closeMyBadges() {
+            document.getElementById('badges-modal').style.display = 'none';
+        }
 
         fetchLeaderboard();
     </script>

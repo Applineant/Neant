@@ -323,6 +323,52 @@ app.post('/void-time', (req, res) => {
     }
 });
 
+// Renvoie le catalogue complet des badges avec l'état débloqué/verrouillé
+// pour cet utilisateur, ainsi que sa progression actuelle sur chaque axe.
+app.get('/my-badges', (req, res) => {
+    try {
+        const userKey = req.query.userKey;
+        if (!userKey) {
+            return res.status(400).send({ error: 'userKey manquant.' });
+        }
+
+        const users = loadUsers();
+        const user = users.find(u => u.key === userKey) || {
+            amount: 0, purchaseBadges: [], voidMaxSeconds: 0, voidBadges: [], chaseBadges: []
+        };
+
+        const purchase = PURCHASE_BADGES.map(b => ({
+            id: b.id,
+            name: b.name,
+            threshold: b.threshold,
+            unlocked: user.purchaseBadges.includes(b.id)
+        }));
+
+        const voidCat = VOID_BADGES.map(b => ({
+            id: b.id,
+            name: b.name,
+            threshold: b.threshold,
+            unlocked: user.voidBadges.includes(b.id)
+        }));
+
+        const chase = [{
+            id: CHASE_BADGE.id,
+            name: CHASE_BADGE.name,
+            unlocked: user.chaseBadges.includes(CHASE_BADGE.id)
+        }];
+
+        res.send({
+            amount: user.amount,
+            voidMaxSeconds: user.voidMaxSeconds,
+            purchase,
+            void: voidCat,
+            chase
+        });
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
+
 // Enregistre la capture du bouton "Rien" et débloque le badge associé.
 app.post('/chase-catch', (req, res) => {
     try {
