@@ -386,7 +386,7 @@
                 </div>
             </div>
 
-            <button class="btn-buy" style="margin-top:15px;" onclick="closeAndSaveLeaderboard()">Fermer et enregistrer</button>
+            <button id="close-invoice-btn" class="btn-buy" style="margin-top:15px;" onclick="closeAndSaveLeaderboard()">Fermer et enregistrer</button>
         </div>
     </div>
 
@@ -416,12 +416,10 @@
         let userUniqueKey = localStorage.getItem('neant_user_key') || '#' + Math.floor(1000 + Math.random() * 9000);
         localStorage.setItem('neant_user_key', userUniqueKey);
 
-        let leaderboard = [
-            { key: "#8812", name: "L_Acheteur_Inconnu", amount: 42.00 },
-            { key: "#3319", name: "Collectionneur_De_Rien", amount: 18.00 },
-            { key: "#9901", name: "Philosophe_Du_Vide", amount: 12.00 },
-            { key: "#1042", name: "Minimaliste_Extreme", amount: 6.00 }
-        ];
+        // Le classement vit désormais côté serveur (persistant, partagé
+        // entre tous les visiteurs) — ce tableau n'est qu'un cache local
+        // en attendant la réponse du serveur.
+        let leaderboard = [];
 
         // Échappement anti-XSS : les pseudos sont fournis par les utilisateurs
         // et ne doivent jamais être injectés tels quels dans le HTML.
@@ -429,6 +427,16 @@
             const div = document.createElement('div');
             div.textContent = str;
             return div.innerHTML;
+        }
+
+        async function fetchLeaderboard() {
+            try {
+                const response = await fetch('/leaderboard');
+                leaderboard = await response.json();
+            } catch (err) {
+                leaderboard = [];
+            }
+            renderLeaderboard();
         }
 
         function renderLeaderboard() {
@@ -690,27 +698,42 @@
             }
         }
 
-        function closeAndSaveLeaderboard() {
+        async function closeAndSaveLeaderboard() {
             const pseudoInput = document.getElementById('user-pseudo').value.trim();
-            const finalPseudo = pseudoInput !== "" ? pseudoInput.slice(0, 30) : "Mécène_Anonyme";
+            const desiredPseudo = pseudoInput !== "" ? pseudoInput.slice(0, 30) : "Mécène_Anonyme";
+            const btn = document.getElementById('close-invoice-btn');
 
-            localStorage.setItem('neant_user_name', finalPseudo);
-            let totalSpent = purchases.reduce((sum, p) => sum + p.price, 0);
+            if (btn) { btn.disabled = true; btn.innerText = "Enregistrement..."; }
 
-            const existingUser = leaderboard.find(user => user.key === userUniqueKey);
+            try {
+                const response = await fetch('/leaderboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        paymentIntentId: lastPaymentIntentId,
+                        userKey: userUniqueKey,
+                        pseudo: desiredPseudo
+                    })
+                });
+                const data = await response.json();
 
-            if (existingUser) {
-                existingUser.amount += totalSpent;
-                existingUser.name = finalPseudo;
-            } else {
-                leaderboard.push({ key: userUniqueKey, name: finalPseudo, amount: totalSpent });
+                if (data.finalName) {
+                    // Le serveur peut avoir modifié le pseudo (ex: #1234 en
+                    // suffixe) s'il était déjà pris par quelqu'un d'autre.
+                    localStorage.setItem('neant_user_name', data.finalName);
+                    if (data.leaderboard) leaderboard = data.leaderboard;
+                }
+            } catch (err) {
+                // Le classement n'a pas pu être mis à jour ; on n'empêche
+                // pas l'utilisateur de fermer sa facture pour autant.
             }
 
             renderLeaderboard();
+            if (btn) { btn.disabled = false; btn.innerText = "Fermer et enregistrer"; }
             document.getElementById('invoice-modal').style.display = 'none';
         }
 
-        renderLeaderboard();
+        fetchLeaderboard();
     </script>
 </body>
 </html>

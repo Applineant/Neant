@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const PDFDocument = require('pdfkit');
 
 // Récupération de la clé Stripe depuis les variables d'environnement Render
@@ -8,12 +9,46 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
     maxNetworkRetries: 0,
     timeout: 20000
 });
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Servir les fichiers statiques (index.html, CSS, JS, audio)
 app.use(express.static(__dirname));
+
+// --- Persistance simple du classement dans un fichier JSON ---
+// Sur le plan gratuit Render, ce fichier est perdu à chaque redéploiement
+// (disque non persistant) : pour une vraie prod, remplacer par une DB
+// (ex: Render PostgreSQL gratuit).
+const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
+
+function loadLeaderboard() {
+    try {
+        return JSON.parse(fs.readFileSync(LEADERBOARD_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveLeaderboard(data) {
+    fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2));
+}
+
+// Génère un pseudo garanti unique dans le classement (ajoute #1234 si pris)
+function makeUniquePseudo(leaderboard, desiredName, userKey) {
+    const takenByOther = (name) => leaderboard.some(u => u.name === name && u.key !== userKey);
+
+    if (!takenByOther(desiredName)) return desiredName;
+
+    let suffix = Math.floor(1000 + Math.random() * 9000);
+    let candidate = `${desiredName}#${suffix}`;
+    while (takenByOther(candidate)) {
+        suffix = Math.floor(1000 + Math.random() * 9000);
+        candidate = `${desiredName}#${suffix}`;
+    }
+    return candidate;
+}
 
 // Route principale pour charger index.html
 app.get('/', (req, res) => {
@@ -48,9 +83,8 @@ app.post('/create-payment-intent', async (req, res) => {
             },
         });
         res.send({ clientSecret: paymentIntent.client_secret });
-     } catch (error) {
-        console.error('Erreur Stripe complète :', error);
-        res.status(500).send({ error: error.message, code: error.code, type: error.type });
+    } catch (error) {
+        res.status(500).send({ error: error.message });
     }
 });
 
@@ -121,6 +155,52 @@ app.post('/certificate', async (req, res) => {
            .text('NÉANT. — Le seul concept où c\'est vous qui décidez combien vous voulez perdre.', { align: 'center' });
 
         doc.end();
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
+
+// Récupère le classement (top 20, trié par montant décroissant)
+app.get('/leaderboard', (req, res) => {
+    const leaderboard = loadLeaderboard();
+    leaderboard.sort((a, b) => b.amount - a.amount);
+    res.send(leaderboard.slice(0, 20));
+});
+
+// Ajoute/met à jour un score au classement.
+// On revérifie le paiement auprès de Stripe (montant + statut) avant
+// d'ajouter quoi que ce soit : le montant ajouté ne vient jamais du client.
+app.post('/leaderboard', async (req, res) => {
+    try {
+        const { paymentIntentId, userKey, pseudo } = req.body;
+
+        if (!paymentIntentId || !userKey) {
+            return res.status(400).send({ error: 'Champs manquants.' });
+        }
+
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        if (paymentIntent.status !== 'succeeded') {
+            return res.status(400).send({ error: 'Paiement non confirmé.' });
+        }
+
+        const amountToAdd = paymentIntent.amount / 100;
+        const desiredName = (pseudo || 'Mécène_Anonyme').toString().trim().slice(0, 30) || 'Mécène_Anonyme';
+
+        let leaderboard = loadLeaderboard();
+        const finalName = makeUniquePseudo(leaderboard, desiredName, userKey);
+
+        const existing = leaderboard.find(u => u.key === userKey);
+        if (existing) {
+            existing.amount += amountToAdd;
+            existing.name = finalName;
+        } else {
+            leaderboard.push({ key: userKey, name: finalName, amount: amountToAdd });
+        }
+
+        saveLeaderboard(leaderboard);
+        leaderboard.sort((a, b) => b.amount - a.amount);
+        res.send({ finalName, leaderboard: leaderboard.slice(0, 20) });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }
