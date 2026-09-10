@@ -50,11 +50,17 @@ async function initDb() {
             purchase_badges JSONB NOT NULL DEFAULT '[]',
             void_max_seconds INTEGER NOT NULL DEFAULT 0,
             void_badges JSONB NOT NULL DEFAULT '[]',
-            chase_badges JSONB NOT NULL DEFAULT '[]',
             click_best INTEGER NOT NULL DEFAULT 0,
             click_badges JSONB NOT NULL DEFAULT '[]'
         )
     `);
+
+    // La table existait déjà avant l'ajout de "Secouez le Rien" (et avant la
+    // suppression de "Chasse au Rien") : CREATE TABLE IF NOT EXISTS ne modifie
+    // pas une table déjà présente, donc on ajoute/retire les colonnes ici.
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS shake_best NUMERIC NOT NULL DEFAULT 0`);
+    await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS shake_badges JSONB NOT NULL DEFAULT '[]'`);
+    await pool.query(`ALTER TABLE users DROP COLUMN IF EXISTS chase_badges`);
 }
 initDb().catch(err => console.error('Erreur init DB :', err));
 
@@ -114,8 +120,13 @@ const VOID_BADGES = [
     { id: '1h',    threshold: 3600, name: 'Transcendé Absolu' }
 ];
 
-// --- Badge de la Chasse au Rien (débloqué une fois, au premier succès) ---
-const CHASE_BADGE = { id: 'chase', name: 'Chasseur du Vide' };
+// --- Badges de "Secouez le Rien" (intensité max de secousse en m/s², sur 5s) ---
+const SHAKE_BADGES = [
+    { id: 'sh15', threshold: 15, name: 'Vibration Suspecte' },
+    { id: 'sh25', threshold: 25, name: 'Secousse Confirmée' },
+    { id: 'sh40', threshold: 40, name: 'Séisme de Poche' },
+    { id: 'sh60', threshold: 60, name: 'Fracas Dimensionnel' }
+];
 
 // --- Badges du Défi du Clic (nombre de clics en 5 secondes) ---
 const CLICK_BADGES = [
@@ -142,6 +153,17 @@ function computeNewVoidBadges(voidMaxSeconds, currentBadges) {
     const unlocked = [];
     for (const badge of VOID_BADGES) {
         if (voidMaxSeconds >= badge.threshold && !currentBadges.includes(badge.id)) {
+            currentBadges.push(badge.id);
+            unlocked.push(badge);
+        }
+    }
+    return unlocked;
+}
+
+function computeNewShakeBadges(shakeBest, currentBadges) {
+    const unlocked = [];
+    for (const badge of SHAKE_BADGES) {
+        if (shakeBest >= badge.threshold && !currentBadges.includes(badge.id)) {
             currentBadges.push(badge.id);
             unlocked.push(badge);
         }
@@ -280,7 +302,11 @@ app.get('/leaderboard', async (req, res) => {
             amount: parseFloat(u.amount),
             topBadge: highestBadgeName(u.purchase_badges || [])
         }));
-        res.send(leaderboard);
+
+        const totalResult = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total FROM users');
+        const worldTotal = parseFloat(totalResult.rows[0].total);
+
+        res.send({ leaderboard, worldTotal });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }
@@ -329,7 +355,10 @@ app.post('/leaderboard', async (req, res) => {
             topBadge: highestBadgeName(u.purchase_badges || [])
         }));
 
-        res.send({ finalName, leaderboard, newBadges });
+        const totalResult = await pool.query('SELECT COALESCE(SUM(amount), 0) AS total FROM users');
+        const worldTotal = parseFloat(totalResult.rows[0].total);
+
+        res.send({ finalName, leaderboard, newBadges, worldTotal });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }
@@ -364,25 +393,31 @@ app.post('/void-time', async (req, res) => {
     }
 });
 
-// Enregistre la capture du bouton "Rien" et débloque le badge associé.
-app.post('/chase-catch', async (req, res) => {
+// Enregistre le pic d'intensité de secousse (m/s², sur 5 secondes) et
+// calcule les badges nouvellement débloqués.
+app.post('/shake-score', async (req, res) => {
     try {
-        const { userKey } = req.body;
-        if (!userKey) {
-            return res.status(400).send({ error: 'userKey manquant.' });
+        const { userKey, intensity } = req.body;
+
+        if (!userKey || typeof intensity !== 'number' || intensity < 0) {
+            return res.status(400).send({ error: 'Champs invalides.' });
         }
+
+        // On plafonne à 200 m/s² pour ignorer les valeurs absurdes envoyées manuellement.
+        const cappedIntensity = Math.min(Math.round(intensity * 10) / 10, 200);
 
         const user = await getOrCreateUser(userKey);
-        const badgeIds = user.chase_badges || [];
-        const newBadges = [];
+        const newBest = Math.max(parseFloat(user.shake_best), cappedIntensity);
+        const badgeIds = user.shake_badges || [];
 
-        if (!badgeIds.includes(CHASE_BADGE.id)) {
-            badgeIds.push(CHASE_BADGE.id);
-            newBadges.push(CHASE_BADGE);
-            await pool.query('UPDATE users SET chase_badges = $1 WHERE key = $2', [JSON.stringify(badgeIds), userKey]);
-        }
+        const newBadges = computeNewShakeBadges(newBest, badgeIds);
 
-        res.send({ newBadges });
+        await pool.query(
+            'UPDATE users SET shake_best = $1, shake_badges = $2 WHERE key = $3',
+            [newBest, JSON.stringify(badgeIds), userKey]
+        );
+
+        res.send({ shakeBest: newBest, newBadges });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }
@@ -430,7 +465,7 @@ app.get('/my-badges', async (req, res) => {
         const result = await pool.query('SELECT * FROM users WHERE key = $1', [userKey]);
         const user = result.rows[0] || {
             amount: 0, purchase_badges: [], void_max_seconds: 0, void_badges: [],
-            chase_badges: [], click_best: 0, click_badges: []
+            shake_best: 0, shake_badges: [], click_best: 0, click_badges: []
         };
 
         const purchase = PURCHASE_BADGES.map(b => ({
@@ -443,10 +478,10 @@ app.get('/my-badges', async (req, res) => {
             unlocked: (user.void_badges || []).includes(b.id)
         }));
 
-        const chase = [{
-            id: CHASE_BADGE.id, name: CHASE_BADGE.name,
-            unlocked: (user.chase_badges || []).includes(CHASE_BADGE.id)
-        }];
+        const shake = SHAKE_BADGES.map(b => ({
+            id: b.id, name: b.name, threshold: b.threshold,
+            unlocked: (user.shake_badges || []).includes(b.id)
+        }));
 
         const click = CLICK_BADGES.map(b => ({
             id: b.id, name: b.name, threshold: b.threshold,
@@ -456,10 +491,11 @@ app.get('/my-badges', async (req, res) => {
         res.send({
             amount: parseFloat(user.amount),
             voidMaxSeconds: user.void_max_seconds,
+            shakeBest: parseFloat(user.shake_best),
             clickBest: user.click_best,
             purchase,
             void: voidCat,
-            chase,
+            shake,
             click
         });
     } catch (error) {

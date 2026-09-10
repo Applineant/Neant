@@ -297,7 +297,7 @@
                     <div class="title">1 € POUR DU RIEN</div>
                     <div class="price">1,00 €</div>
                 </div>
-                <div class="desc">1€ pour du rien, on sait faire. Vous payez 1€, on ne vous donne rien. Honnêteté absolue.</div>
+                <div class="desc">Vous payez, on ne donne rien. Honnêteté absolue.</div>
             </div>
 
             <div class="card" data-tier="birthday" onclick="selectTier(this, 'Cadeau d\'Anniversaire Néant', 'birthday', true)">
@@ -305,7 +305,7 @@
                     <div class="title">🎂 CADEAU D'ANNIVERSAIRE</div>
                     <div class="price">2,50 €</div>
                 </div>
-                <div class="desc">Offrir un rien d'anniversaire ? Pas de souci, on s'en occupe ! Le cadeau ultime pour celui qui a déjà tout.</div>
+                <div class="desc">Le cadeau ultime pour celui qui a déjà tout.</div>
             </div>
 
             <div class="card" data-tier="dopamine" onclick="selectTier(this, 'Flex Dopaminergique', 'dopamine', false)">
@@ -313,7 +313,7 @@
                     <div class="title">⚡ SHOT DE DOPAMINE</div>
                     <div class="price">5,00 €</div>
                 </div>
-                <div class="desc">Un besoin de dopamine important ? Achetez donc 5€ de néant. Le plaisir de l'achat sans l'encombrement.</div>
+                <div class="desc">Le plaisir de l'achat sans l'encombrement.</div>
             </div>
         </div>
 
@@ -336,7 +336,7 @@
             <h3>🎮 CHOISISSEZ VOTRE DÉFI</h3>
             <p style="font-size:0.8rem; color:var(--dim); margin:10px 0 18px 0;">Trois façons différentes de ne rien gagner.</p>
             <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-bottom:10px;" onclick="closeGamesMenu(); openVoidScreen();">🕳️ Cliquez ici pour ne rien voir</button>
-            <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-bottom:10px;" onclick="closeGamesMenu(); openChaseGame();">🎯 Chassez le Rien</button>
+            <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-bottom:10px;" onclick="closeGamesMenu(); openShakeGame();">📳 Secouez le Rien</button>
             <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border);" onclick="closeGamesMenu(); openClickChallenge();">👆 Défi du Clic (5s pour rien)</button>
             <button onclick="closeGamesMenu()" style="background:none; border:none; color:var(--dim); margin-top:15px; font-size:0.8rem; cursor:pointer;">Annuler</button>
         </div>
@@ -368,41 +368,52 @@
         </div>
     </div>
 
-    <!-- MODALE : CHASSE AU RIEN (mini-jeu) -->
-    <div id="chase-modal" class="modal-overlay">
-        <div class="modal" style="max-width:420px;">
-            <div id="chase-game-step">
-                <h3>🎯 CHASSEZ LE RIEN</h3>
-                <p style="font-size:0.8rem; color:var(--dim); margin:8px 0 15px 0;">
-                    Essayez d'attraper le bouton. Bonne chance : c'est du Néant, il n'aime pas se laisser saisir.
+    <!-- MODALE : SECOUEZ LE RIEN (mini-jeu) -->
+    <div id="shake-modal" class="modal-overlay">
+        <div class="modal">
+            <div id="shake-unsupported-step" style="display:none;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">📳</div>
+                <h3>SECOUEZ LE RIEN</h3>
+                <p style="font-size:0.85rem; color:var(--dim); margin:12px 0 20px 0;">
+                    Ce défi nécessite un accéléromètre — il est réservé aux téléphones. Reviens depuis ton mobile pour secouer le Rien.
                 </p>
-                <p style="font-size:0.75rem; color:var(--dim); margin-bottom:8px;">
-                    Tentatives ratées : <strong id="chase-attempts" style="color:#fff;">0</strong>
-                </p>
-                <div id="chase-area" style="position:relative; width:100%; height:260px; background:#0a0a0a; border:1px solid var(--border); border-radius:10px; overflow:hidden;">
-                    <button id="chase-target" class="btn-buy" style="position:absolute; width:130px; padding:12px 0; top:110px; left:calc(50% - 65px);">Cliquez ici</button>
-                </div>
-                <button onclick="closeChaseGame()" style="background:none; border:none; color:var(--dim); margin-top:15px; font-size:0.8rem; cursor:pointer;">Abandonner la chasse</button>
+                <button class="btn-buy" onclick="closeShakeGame()">Fermer</button>
             </div>
 
-            <div id="chase-result-step" style="display:none;">
-                <div style="font-size:2.5rem; margin-bottom:10px;">🎯</div>
-                <h3>BRAVO</h3>
-                <p style="font-size:0.9rem; color:var(--dim); margin:12px 0;">
-                    Tu as réussi à ne rien obtenir, après <strong id="chase-final-attempts" style="color:#fff;">0</strong> tentative(s) ratée(s). Un exploit d'une inutilité rare.
+            <div id="shake-intro-step">
+                <div style="font-size:2.5rem; margin-bottom:10px;">📳</div>
+                <h3>SECOUEZ LE RIEN</h3>
+                <p style="font-size:0.85rem; color:var(--dim); margin:12px 0 20px 0;">
+                    Secoue ton téléphone le plus fort possible pendant 5 secondes. Pour rien.
                 </p>
-                <div id="chase-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px;">
+                <button class="btn-buy" onclick="startShakeGame()">Commencer</button>
+                <button onclick="closeShakeGame()" style="background:none; border:none; color:var(--dim); margin-top:10px; font-size:0.8rem; cursor:pointer; display:block; width:100%;">Annuler</button>
+            </div>
+
+            <div id="shake-play-step" style="display:none;">
+                <p style="font-size:0.75rem; color:var(--dim);">Temps restant : <strong id="shake-timer" style="color:#fff;">5.0</strong> s</p>
+                <div id="shake-intensity-display" style="font-size:2.6rem; font-weight:bold; margin:15px 0;">0.0</div>
+                <p style="font-size:0.7rem; color:var(--dim);">m/s² (pic actuel)</p>
+            </div>
+
+            <div id="shake-result-step" style="display:none;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">📳</div>
+                <h3>TERMINÉ</h3>
+                <p style="font-size:0.9rem; color:var(--dim); margin:12px 0;">
+                    Pic atteint : <strong id="shake-final-intensity" style="color:#fff; font-size:1.3rem;">0</strong> m/s², pour absolument rien.
+                </p>
+                <div id="shake-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px;">
                     <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px;">Nouveau badge débloqué</div>
-                    <div id="chase-badge-name" style="font-size:1.2rem; font-weight:bold; margin-top:6px;"></div>
+                    <div id="shake-badge-name" style="font-size:1.2rem; font-weight:bold; margin-top:6px;"></div>
                 </div>
-                <div class="share-btns" id="chase-share-btns" style="display:none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
-                    <a id="chase-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
-                    <a id="chase-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
-                    <a id="chase-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
-                    <button onclick="copyForInstaTikTok('Instagram', lastChaseShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
-                    <button onclick="copyForInstaTikTok('TikTok', lastChaseShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                <div class="share-btns" id="shake-share-btns" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                    <a id="shake-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="shake-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="shake-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
+                    <button onclick="copyForInstaTikTok('Instagram', lastShakeShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastShakeShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
                 </div>
-                <button class="btn-buy" style="margin-top:15px;" onclick="closeChaseGame()">Fermer</button>
+                <button class="btn-buy" style="margin-top:15px;" onclick="closeShakeGame()">Fermer</button>
             </div>
         </div>
     </div>
@@ -420,8 +431,8 @@
                 <div class="leaderboard-title" style="margin-top:20px;">🕳️ Contemplation du Vide</div>
                 <div id="badges-void-list"></div>
 
-                <div class="leaderboard-title" style="margin-top:20px;">🎯 Chasse au Rien</div>
-                <div id="badges-chase-list"></div>
+                <div class="leaderboard-title" style="margin-top:20px;">📳 Secouez le Rien</div>
+                <div id="badges-shake-list"></div>
 
                 <div class="leaderboard-title" style="margin-top:20px;">👆 Défi du Clic</div>
                 <div id="badges-click-list"></div>
@@ -610,10 +621,14 @@
             return div.innerHTML;
         }
 
+        let worldTotal = 0;
+
         async function fetchLeaderboard() {
             try {
                 const response = await fetch('/leaderboard');
-                leaderboard = await response.json();
+                const data = await response.json();
+                leaderboard = data.leaderboard || [];
+                worldTotal = data.worldTotal || 0;
             } catch (err) {
                 leaderboard = [];
             }
@@ -628,6 +643,16 @@
             leaderboard.sort((a, b) => b.amount - a.amount);
 
             const limit = leaderboardExpanded ? 20 : 3;
+
+            if (leaderboardExpanded) {
+                const worldBox = document.createElement('div');
+                worldBox.style.cssText = 'background:#1c1c1c; border:1px solid var(--border); border-radius:10px; padding:12px; text-align:center; margin-bottom:14px;';
+                worldBox.innerHTML = `
+                    <div style="font-size:0.62rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">💸 Dépensé pour rien dans le monde</div>
+                    <div style="font-size:1.5rem; font-weight:900; font-family:monospace;">${worldTotal.toFixed(2)} €</div>
+                `;
+                listEl.appendChild(worldBox);
+            }
 
             leaderboard.slice(0, limit).forEach((item, index) => {
                 const row = document.createElement('div');
@@ -960,6 +985,7 @@
                     if (data.finalName) {
                         finalName = data.finalName;
                         if (data.leaderboard) leaderboard = data.leaderboard;
+                        if (typeof data.worldTotal === 'number') worldTotal = data.worldTotal;
                     }
                     if (Array.isArray(data.newBadges)) newBadges = newBadges.concat(data.newBadges);
                 }
@@ -1056,99 +1082,129 @@
 
         document.getElementById('void-screen').addEventListener('click', closeVoidScreen);
 
-        // --- Mini-jeu : Chasse au Rien ---
-        let chaseAttempts = 0;
-        let chaseCaught = false;
-        let lastChaseShareText = '';
-        const CHASE_CATCH_THRESHOLD = 15; // nombre d'esquives avant que le bouton se laisse attraper
+        // --- Mini-jeu : Secouez le Rien (accéléromètre, 5 secondes) ---
+        let shakePeakIntensity = 0;
+        let shakeTimerInterval = null;
+        let shakeMotionHandler = null;
+        let lastShakeShareText = '';
 
-        function openChaseGame() {
-            chaseAttempts = 0;
-            chaseCaught = false;
-            document.getElementById('chase-attempts').innerText = '0';
-            document.getElementById('chase-game-step').style.display = 'block';
-            document.getElementById('chase-result-step').style.display = 'none';
-            document.getElementById('chase-badge-box').style.display = 'none';
-            document.getElementById('chase-share-btns').style.display = 'none';
-            positionChaseTarget();
-            document.getElementById('chase-modal').style.display = 'flex';
+        function hasMotionSupport() {
+            return typeof window.DeviceMotionEvent !== 'undefined';
         }
 
-        function closeChaseGame() {
-            document.getElementById('chase-modal').style.display = 'none';
+        async function openShakeGame() {
+            document.getElementById('shake-unsupported-step').style.display = 'none';
+            document.getElementById('shake-intro-step').style.display = 'block';
+            document.getElementById('shake-play-step').style.display = 'none';
+            document.getElementById('shake-result-step').style.display = 'none';
+            document.getElementById('shake-badge-box').style.display = 'none';
+            document.getElementById('shake-share-btns').style.display = 'none';
+
+            if (!hasMotionSupport()) {
+                document.getElementById('shake-unsupported-step').style.display = 'block';
+                document.getElementById('shake-intro-step').style.display = 'none';
+            }
+
+            document.getElementById('shake-modal').style.display = 'flex';
         }
 
-        function positionChaseTarget() {
-            const area = document.getElementById('chase-area');
-            const target = document.getElementById('chase-target');
-            const maxX = area.clientWidth - target.offsetWidth - 10;
-            const maxY = area.clientHeight - target.offsetHeight - 10;
-            const x = Math.max(10, Math.floor(Math.random() * maxX));
-            const y = Math.max(10, Math.floor(Math.random() * maxY));
-            target.style.left = x + 'px';
-            target.style.top = y + 'px';
+        function closeShakeGame() {
+            if (shakeTimerInterval) clearInterval(shakeTimerInterval);
+            if (shakeMotionHandler) window.removeEventListener('devicemotion', shakeMotionHandler);
+            document.getElementById('shake-modal').style.display = 'none';
         }
 
-        function dodgeChaseTarget() {
-            if (chaseCaught) return;
-            chaseAttempts++;
-            document.getElementById('chase-attempts').innerText = chaseAttempts;
-            positionChaseTarget();
+        async function startShakeGame() {
+            // Sur iOS, l'accès à l'accéléromètre nécessite une permission
+            // explicite demandée depuis un geste utilisateur (ce clic).
+            if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceMotionEvent.requestPermission();
+                    if (permission !== 'granted') {
+                        document.getElementById('shake-intro-step').style.display = 'none';
+                        document.getElementById('shake-unsupported-step').style.display = 'block';
+                        return;
+                    }
+                } catch (err) {
+                    document.getElementById('shake-intro-step').style.display = 'none';
+                    document.getElementById('shake-unsupported-step').style.display = 'block';
+                    return;
+                }
+            }
+
+            shakePeakIntensity = 0;
+            document.getElementById('shake-intensity-display').innerText = '0.0';
+            document.getElementById('shake-intro-step').style.display = 'none';
+            document.getElementById('shake-play-step').style.display = 'block';
+
+            shakeMotionHandler = (event) => {
+                // On privilégie l'accélération "propre" (sans gravité) quand le
+                // téléphone la fournit ; sinon on retire ~9.8 m/s² de la gravité
+                // en secours pour approcher la même mesure.
+                const a = event.acceleration && event.acceleration.x !== null
+                    ? event.acceleration
+                    : event.accelerationIncludingGravity;
+
+                if (!a) return;
+
+                let magnitude = Math.sqrt((a.x || 0) ** 2 + (a.y || 0) ** 2 + (a.z || 0) ** 2);
+                if (!event.acceleration || event.acceleration.x === null) {
+                    magnitude = Math.max(0, magnitude - 9.8);
+                }
+
+                if (magnitude > shakePeakIntensity) {
+                    shakePeakIntensity = magnitude;
+                    document.getElementById('shake-intensity-display').innerText = shakePeakIntensity.toFixed(1);
+                }
+            };
+            window.addEventListener('devicemotion', shakeMotionHandler);
+
+            let timeLeft = 5.0;
+            document.getElementById('shake-timer').innerText = timeLeft.toFixed(1);
+
+            shakeTimerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(shakeTimerInterval);
+                    finishShakeGame();
+                }
+                document.getElementById('shake-timer').innerText = Math.max(0, timeLeft).toFixed(1);
+            }, 100);
         }
 
-        async function catchChaseTarget() {
-            if (chaseCaught) return;
-            chaseCaught = true;
+        async function finishShakeGame() {
+            if (shakeMotionHandler) window.removeEventListener('devicemotion', shakeMotionHandler);
 
-            document.getElementById('chase-game-step').style.display = 'none';
-            document.getElementById('chase-result-step').style.display = 'block';
-            document.getElementById('chase-final-attempts').innerText = chaseAttempts;
+            document.getElementById('shake-play-step').style.display = 'none';
+            document.getElementById('shake-result-step').style.display = 'block';
+            document.getElementById('shake-final-intensity').innerText = shakePeakIntensity.toFixed(1);
 
             try {
-                const response = await fetch('/chase-catch', {
+                const response = await fetch('/shake-score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userKey: userUniqueKey, attempts: chaseAttempts })
+                    body: JSON.stringify({ userKey: userUniqueKey, intensity: shakePeakIntensity })
                 });
                 const data = await response.json();
 
+                lastShakeShareText = `J'ai secoué mon téléphone à ${shakePeakIntensity.toFixed(1)} m/s² sur NÉANT. Pour rien. 📳 #NEANT`;
+                const shareText = encodeURIComponent(lastShakeShareText);
+                const shareUrl = encodeURIComponent(window.location.href);
+
+                document.getElementById('shake-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                document.getElementById('shake-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                document.getElementById('shake-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+
                 if (data.newBadges && data.newBadges.length > 0) {
                     const badge = data.newBadges[data.newBadges.length - 1];
-                    document.getElementById('chase-badge-name').innerText = `🎯 ${badge.name}`;
-                    document.getElementById('chase-badge-box').style.display = 'block';
-
-                    lastChaseShareText = `Je viens de devenir "${badge.name}" sur NÉANT en attrapant le Rien après ${chaseAttempts} tentatives ratées. 🎯 #NEANT`;
-                    const shareText = encodeURIComponent(lastChaseShareText);
-                    const shareUrl = encodeURIComponent(window.location.href);
-
-                    document.getElementById('chase-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
-                    document.getElementById('chase-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
-                    document.getElementById('chase-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
-                    document.getElementById('chase-share-btns').style.display = 'grid';
+                    document.getElementById('shake-badge-name').innerText = `📳 ${badge.name}`;
+                    document.getElementById('shake-badge-box').style.display = 'block';
                 }
             } catch (err) {
-                // Pas grave si l'enregistrement échoue.
+                // Pas grave si l'enregistrement échoue, on affiche quand même le résultat.
             }
         }
-
-        document.getElementById('chase-target').addEventListener('mouseenter', () => {
-            // Sur ordinateur : le bouton s'enfuit dès que le curseur l'approche.
-            if (chaseAttempts < CHASE_CATCH_THRESHOLD) {
-                dodgeChaseTarget();
-            } else {
-                catchChaseTarget();
-            }
-        });
-
-        document.getElementById('chase-target').addEventListener('click', (e) => {
-            // Sur mobile (pas de survol) : le clic déclenche l'esquive ou la capture.
-            e.preventDefault();
-            if (chaseAttempts < CHASE_CATCH_THRESHOLD) {
-                dodgeChaseTarget();
-            } else {
-                catchChaseTarget();
-            }
-        });
 
         // --- Mes badges (progression) ---
         function renderBadgeList(containerId, badges, currentValue, formatFn) {
@@ -1179,7 +1235,7 @@
             document.getElementById('badges-modal').style.display = 'flex';
             document.getElementById('badges-purchase-list').innerHTML = '<div style="font-size:0.8rem; color:var(--dim);">Chargement...</div>';
             document.getElementById('badges-void-list').innerHTML = '';
-            document.getElementById('badges-chase-list').innerHTML = '';
+            document.getElementById('badges-shake-list').innerHTML = '';
             document.getElementById('badges-click-list').innerHTML = '';
 
             try {
@@ -1193,7 +1249,7 @@
                 const voidCurrent = `Meilleur temps actuel : ${minutes > 0 ? minutes + ' min ' + secs + ' s' : secs + ' s'}`;
                 renderBadgeList('badges-void-list', data.void, voidCurrent, (t) => t < 60 ? t + ' s' : Math.floor(t / 60) + ' min');
 
-                renderBadgeList('badges-chase-list', data.chase);
+                renderBadgeList('badges-shake-list', data.shake, `Pic actuel : ${data.shakeBest.toFixed(1)} m/s²`, (t) => t + ' m/s²');
 
                 renderBadgeList('badges-click-list', data.click, `Meilleur score actuel : ${data.clickBest} clics`, (t) => t + ' clics');
             } catch (err) {
