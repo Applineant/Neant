@@ -17,39 +17,6 @@ app.use(express.json());
 // Servir les fichiers statiques (index.html, CSS, JS, audio)
 app.use(express.static(__dirname));
 
-// --- Persistance simple du classement dans un fichier JSON ---
-// Sur le plan gratuit Render, ce fichier est perdu à chaque redéploiement
-// (disque non persistant) : pour une vraie prod, remplacer par une DB
-// (ex: Render PostgreSQL gratuit).
-const LEADERBOARD_FILE = path.join(__dirname, 'leaderboard.json');
-
-function loadLeaderboard() {
-    try {
-        return JSON.parse(fs.readFileSync(LEADERBOARD_FILE, 'utf8'));
-    } catch (e) {
-        return [];
-    }
-}
-
-function saveLeaderboard(data) {
-    fs.writeFileSync(LEADERBOARD_FILE, JSON.stringify(data, null, 2));
-}
-
-// Génère un pseudo garanti unique dans le classement (ajoute #1234 si pris)
-function makeUniquePseudo(leaderboard, desiredName, userKey) {
-    const takenByOther = (name) => leaderboard.some(u => u.name === name && u.key !== userKey);
-
-    if (!takenByOther(desiredName)) return desiredName;
-
-    let suffix = Math.floor(1000 + Math.random() * 9000);
-    let candidate = `${desiredName}#${suffix}`;
-    while (takenByOther(candidate)) {
-        suffix = Math.floor(1000 + Math.random() * 9000);
-        candidate = `${desiredName}#${suffix}`;
-    }
-    return candidate;
-}
-
 // Route principale pour charger index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
@@ -64,6 +31,107 @@ const TIERS = {
     dopamine: 5.00,
     upsell:   1.00
 };
+
+// --- Persistance simple dans un fichier JSON ---
+// Sur le plan gratuit Render, ce fichier est perdu à chaque redéploiement
+// (disque non persistant) : pour une vraie prod, remplacer par une DB
+// (ex: Render PostgreSQL gratuit).
+const USERS_FILE = path.join(__dirname, 'users.json');
+
+function loadUsers() {
+    try {
+        return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveUsers(data) {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+}
+
+function findOrCreateUser(users, userKey) {
+    let user = users.find(u => u.key === userKey);
+    if (!user) {
+        user = { key: userKey, name: 'Mécène_Anonyme', amount: 0, purchaseBadges: [], voidMaxSeconds: 0, voidBadges: [] };
+        users.push(user);
+    }
+    if (!user.purchaseBadges) user.purchaseBadges = [];
+    if (!user.voidBadges) user.voidBadges = [];
+    if (!user.voidMaxSeconds) user.voidMaxSeconds = 0;
+    return user;
+}
+
+// Génère un pseudo garanti unique (ajoute #1234 si déjà pris par quelqu'un d'autre)
+function makeUniquePseudo(users, desiredName, userKey) {
+    const takenByOther = (name) => users.some(u => u.name === name && u.key !== userKey);
+
+    if (!takenByOther(desiredName)) return desiredName;
+
+    let suffix = Math.floor(1000 + Math.random() * 9000);
+    let candidate = `${desiredName}#${suffix}`;
+    while (takenByOther(candidate)) {
+        suffix = Math.floor(1000 + Math.random() * 9000);
+        candidate = `${desiredName}#${suffix}`;
+    }
+    return candidate;
+}
+
+// --- Badges d'achat (montant total cumulé) ---
+const PURCHASE_BADGES = [
+    { id: 'first',    threshold: 0,    name: 'Néophyte du Vide' },       // débloqué au tout premier achat
+    { id: '5',        threshold: 5,    name: 'Chevalier du Rien' },
+    { id: '10',       threshold: 10,   name: 'Baron de la Futilité' },
+    { id: '20',       threshold: 20,   name: 'Duc du Néant' },
+    { id: '50',       threshold: 50,   name: 'Prince de l\'Absence' },
+    { id: '100',      threshold: 100,  name: 'Empereur du Vide' },
+    { id: '500',      threshold: 500,  name: 'Divinité du Rien' },
+    { id: '1000',     threshold: 1000, name: 'Légende Absolue du Néant' }
+];
+
+// --- Badges du Vide (temps max passé sur l'écran noir, en secondes) ---
+const VOID_BADGES = [
+    { id: '10s',   threshold: 10,   name: 'Curieux du Vide' },
+    { id: '30s',   threshold: 30,   name: 'Observateur du Néant' },
+    { id: '1min',  threshold: 60,   name: 'Contemplateur du Rien' },
+    { id: '5min',  threshold: 300,  name: 'Moine du Vide' },
+    { id: '15min', threshold: 900,  name: 'Ermite du Néant' },
+    { id: '30min', threshold: 1800, name: 'Illuminé du Rien' },
+    { id: '1h',    threshold: 3600, name: 'Transcendé Absolu' }
+];
+
+function computeNewPurchaseBadges(user, isFirstPurchaseEver) {
+    const unlocked = [];
+    for (const badge of PURCHASE_BADGES) {
+        const alreadyHas = user.purchaseBadges.includes(badge.id);
+        const qualifies = badge.id === 'first' ? isFirstPurchaseEver : user.amount >= badge.threshold;
+        if (qualifies && !alreadyHas) {
+            user.purchaseBadges.push(badge.id);
+            unlocked.push(badge);
+        }
+    }
+    return unlocked;
+}
+
+function computeNewVoidBadges(user) {
+    const unlocked = [];
+    for (const badge of VOID_BADGES) {
+        const alreadyHas = user.voidBadges.includes(badge.id);
+        if (user.voidMaxSeconds >= badge.threshold && !alreadyHas) {
+            user.voidBadges.push(badge.id);
+            unlocked.push(badge);
+        }
+    }
+    return unlocked;
+}
+
+function highestBadgeName(user) {
+    const ids = user.purchaseBadges || [];
+    for (let i = PURCHASE_BADGES.length - 1; i >= 0; i--) {
+        if (ids.includes(PURCHASE_BADGES[i].id)) return PURCHASE_BADGES[i].name;
+    }
+    return null;
+}
 
 // Endpoint pour générer le paiement Stripe
 app.post('/create-payment-intent', async (req, res) => {
@@ -84,6 +152,7 @@ app.post('/create-payment-intent', async (req, res) => {
         });
         res.send({ clientSecret: paymentIntent.client_secret });
     } catch (error) {
+        console.error('Erreur Stripe complète :', error);
         res.status(500).send({ error: error.message });
     }
 });
@@ -119,7 +188,6 @@ app.post('/certificate', async (req, res) => {
         const doc = new PDFDocument({ size: 'A4', margin: 60 });
         doc.pipe(res);
 
-        // Cadre décoratif
         doc.rect(30, 30, doc.page.width - 60, doc.page.height - 60)
            .lineWidth(2)
            .stroke('#111111');
@@ -160,16 +228,23 @@ app.post('/certificate', async (req, res) => {
     }
 });
 
-// Récupère le classement (top 20, trié par montant décroissant)
+// Récupère le classement (top 20, trié par montant décroissant), avec le
+// badge d'achat le plus élevé de chacun pour affichage.
 app.get('/leaderboard', (req, res) => {
-    const leaderboard = loadLeaderboard();
-    leaderboard.sort((a, b) => b.amount - a.amount);
-    res.send(leaderboard.slice(0, 20));
+    const users = loadUsers();
+    const sorted = [...users].sort((a, b) => b.amount - a.amount).slice(0, 20);
+    const result = sorted.map(u => ({
+        key: u.key,
+        name: u.name,
+        amount: u.amount,
+        topBadge: highestBadgeName(u)
+    }));
+    res.send(result);
 });
 
-// Ajoute/met à jour un score au classement.
-// On revérifie le paiement auprès de Stripe (montant + statut) avant
-// d'ajouter quoi que ce soit : le montant ajouté ne vient jamais du client.
+// Ajoute/met à jour un score au classement + calcule les badges d'achat
+// nouvellement débloqués. Le montant ajouté vient toujours de Stripe,
+// jamais du client.
 app.post('/leaderboard', async (req, res) => {
     try {
         const { paymentIntentId, userKey, pseudo } = req.body;
@@ -187,20 +262,50 @@ app.post('/leaderboard', async (req, res) => {
         const amountToAdd = paymentIntent.amount / 100;
         const desiredName = (pseudo || 'Mécène_Anonyme').toString().trim().slice(0, 30) || 'Mécène_Anonyme';
 
-        let leaderboard = loadLeaderboard();
-        const finalName = makeUniquePseudo(leaderboard, desiredName, userKey);
+        let users = loadUsers();
+        const isFirstPurchaseEver = !users.some(u => u.key === userKey);
+        const user = findOrCreateUser(users, userKey);
 
-        const existing = leaderboard.find(u => u.key === userKey);
-        if (existing) {
-            existing.amount += amountToAdd;
-            existing.name = finalName;
-        } else {
-            leaderboard.push({ key: userKey, name: finalName, amount: amountToAdd });
+        user.name = makeUniquePseudo(users, desiredName, userKey);
+        user.amount += amountToAdd;
+
+        const newBadges = computeNewPurchaseBadges(user, isFirstPurchaseEver);
+
+        saveUsers(users);
+
+        const sorted = [...users].sort((a, b) => b.amount - a.amount).slice(0, 20)
+            .map(u => ({ key: u.key, name: u.name, amount: u.amount, topBadge: highestBadgeName(u) }));
+
+        res.send({ finalName: user.name, leaderboard: sorted, newBadges });
+    } catch (error) {
+        res.status(500).send({ error: error.message });
+    }
+});
+
+// Enregistre le temps passé sur "l'écran du Vide" et calcule les badges
+// de contemplation nouvellement débloqués.
+app.post('/void-time', (req, res) => {
+    try {
+        const { userKey, seconds } = req.body;
+
+        if (!userKey || typeof seconds !== 'number' || seconds < 0) {
+            return res.status(400).send({ error: 'Champs invalides.' });
         }
 
-        saveLeaderboard(leaderboard);
-        leaderboard.sort((a, b) => b.amount - a.amount);
-        res.send({ finalName, leaderboard: leaderboard.slice(0, 20) });
+        // On plafonne à 6h pour éviter les valeurs absurdes envoyées manuellement.
+        const cappedSeconds = Math.min(seconds, 21600);
+
+        let users = loadUsers();
+        const user = findOrCreateUser(users, userKey);
+
+        if (cappedSeconds > user.voidMaxSeconds) {
+            user.voidMaxSeconds = cappedSeconds;
+        }
+
+        const newBadges = computeNewVoidBadges(user);
+        saveUsers(users);
+
+        res.send({ voidMaxSeconds: user.voidMaxSeconds, newBadges });
     } catch (error) {
         res.status(500).send({ error: error.message });
     }

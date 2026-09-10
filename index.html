@@ -299,9 +299,37 @@
 
         <button class="btn-buy" onclick="openPaymentModal(initialTier)">Acheter <span id="btn-price">1.00</span> € de Néant 💸</button>
 
+        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openVoidScreen()">🕳️ Cliquez ici pour ne rien voir</button>
+
         <div class="leaderboard-box">
             <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
             <div id="leaderboard-list"></div>
+        </div>
+    </div>
+
+    <!-- ÉCRAN DU VIDE -->
+    <div id="void-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#000; display:none; z-index:2000; cursor:pointer;"></div>
+
+    <!-- MODALE VIDE : résultat -->
+    <div id="void-result-modal" class="modal-overlay">
+        <div class="modal">
+            <div style="font-size:2.5rem; margin-bottom:10px;">🕳️</div>
+            <h3>FÉLICITATIONS</h3>
+            <p style="font-size:0.9rem; color:var(--dim); margin:12px 0;">
+                Tu as contemplé le Vide pendant <strong id="void-duration" style="color:#fff;">0 seconde</strong>.
+            </p>
+            <div id="void-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px;">
+                <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px;">Nouveau badge débloqué</div>
+                <div id="void-badge-name" style="font-size:1.2rem; font-weight:bold; margin-top:6px;"></div>
+            </div>
+            <div class="share-btns" id="void-share-btns" style="display:none; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                <a id="void-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                <a id="void-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                <a id="void-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
+                <button onclick="copyForInstaTikTok('Instagram', lastVoidShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                <button onclick="copyForInstaTikTok('TikTok', lastVoidShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+            </div>
+            <button class="btn-buy" style="margin-top:15px;" onclick="closeVoidResultModal()">Fermer</button>
         </div>
     </div>
 
@@ -372,12 +400,18 @@
                 <button id="certificate-btn" class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border);" onclick="downloadCertificate()">📜 Télécharger mon certificat de Néant</button>
             </div>
 
+            <div id="purchase-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px; text-align:left;">
+                <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px;">Nouveau(x) badge(s) débloqué(s)</div>
+                <div id="purchase-badge-list" style="font-size:1.05rem; font-weight:bold; margin-top:6px;"></div>
+            </div>
+
             <!-- Partage Réseaux Sociaux -->
             <div class="share-box">
                 <div class="share-title">📢 Proclamer votre futilité</div>
                 <div class="share-btns" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <a id="share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
                     <a id="share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                     <button onclick="copyForInstaTikTok('Instagram')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
                 </div>
@@ -449,7 +483,7 @@
                 row.className = 'leaderboard-item';
                 row.innerHTML = `
                     <span class="rank ${index === 0 ? 'rank-1' : ''}">#${index + 1}</span>
-                    <span class="user-name">${escapeHtml(item.name)}<span class="user-tag">${escapeHtml(item.key)}</span></span>
+                    <span class="user-name">${escapeHtml(item.name)}<span class="user-tag">${escapeHtml(item.key)}${item.topBadge ? ' · 🏆 ' + escapeHtml(item.topBadge) : ''}</span></span>
                     <span class="amount-spent">${item.amount.toFixed(2)} €</span>
                 `;
                 listEl.appendChild(row);
@@ -610,14 +644,16 @@
             }, 100);
         }
 
-        function copyForInstaTikTok(platform) {
+        function copyForInstaTikTok(platform, customText) {
             const totalSpent = purchases.reduce((sum, p) => sum + p.price, 0).toFixed(2);
-            const textToCopy = `Marre des placements qui rapportent des miettes ? Je viens d'acheter ${totalSpent}€ de NÉANT. La meilleure décision de ma vie. 💸🎁 #NEANT #AchatDuFutur`;
+            const textToCopy = customText || `Marre des placements qui rapportent des miettes ? Je viens d'acheter ${totalSpent}€ de NÉANT. La meilleure décision de ma vie. 💸🎁 #NEANT #AchatDuFutur`;
 
             navigator.clipboard.writeText(textToCopy).then(() => {
-                const toast = document.getElementById('copy-toast');
-                toast.innerText = `✨ Texte copié ! Redirection vers ${platform}...`;
-                toast.style.display = 'block';
+                const toast = document.getElementById('copy-toast') || document.getElementById('void-copy-toast');
+                if (toast) {
+                    toast.innerText = `✨ Texte copié ! Redirection vers ${platform}...`;
+                    toast.style.display = 'block';
+                }
 
                 setTimeout(() => {
                     if (platform === 'Instagram') {
@@ -625,7 +661,7 @@
                     } else if (platform === 'TikTok') {
                         window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
                     }
-                    toast.style.display = 'none';
+                    if (toast) toast.style.display = 'none';
                 }, 1000);
             });
         }
@@ -659,6 +695,15 @@
 
             document.getElementById('share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
             document.getElementById('share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+            document.getElementById('share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+
+            document.getElementById('purchase-badge-box').style.display = 'none';
+
+            const closeBtn = document.getElementById('close-invoice-btn');
+            if (closeBtn) {
+                closeBtn.innerText = "Fermer et enregistrer";
+                closeBtn.setAttribute('onclick', 'closeAndSaveLeaderboard()');
+            }
 
             document.getElementById('invoice-modal').style.display = 'flex';
         }
@@ -698,12 +743,18 @@
             }
         }
 
+        function closeInvoiceModalOnly() {
+            document.getElementById('invoice-modal').style.display = 'none';
+        }
+
         async function closeAndSaveLeaderboard() {
             const pseudoInput = document.getElementById('user-pseudo').value.trim();
             const desiredPseudo = pseudoInput !== "" ? pseudoInput.slice(0, 30) : "Mécène_Anonyme";
             const btn = document.getElementById('close-invoice-btn');
 
             if (btn) { btn.disabled = true; btn.innerText = "Enregistrement..."; }
+
+            let newBadges = [];
 
             try {
                 const response = await fetch('/leaderboard', {
@@ -723,15 +774,91 @@
                     localStorage.setItem('neant_user_name', data.finalName);
                     if (data.leaderboard) leaderboard = data.leaderboard;
                 }
+                if (Array.isArray(data.newBadges)) newBadges = data.newBadges;
             } catch (err) {
                 // Le classement n'a pas pu être mis à jour ; on n'empêche
                 // pas l'utilisateur de fermer sa facture pour autant.
             }
 
             renderLeaderboard();
-            if (btn) { btn.disabled = false; btn.innerText = "Fermer et enregistrer"; }
-            document.getElementById('invoice-modal').style.display = 'none';
+
+            if (newBadges.length > 0) {
+                const box = document.getElementById('purchase-badge-box');
+                const list = document.getElementById('purchase-badge-list');
+                list.innerHTML = newBadges.map(b => `🏆 ${escapeHtml(b.name)}`).join('<br>');
+                box.style.display = 'block';
+
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerText = "Fermer";
+                    btn.setAttribute('onclick', 'closeInvoiceModalOnly()');
+                }
+            } else {
+                if (btn) { btn.disabled = false; btn.innerText = "Fermer et enregistrer"; }
+                closeInvoiceModalOnly();
+            }
         }
+
+        // --- Écran du Vide ---
+        let voidStartTime = null;
+
+        function openVoidScreen() {
+            voidStartTime = Date.now();
+            document.getElementById('void-screen').style.display = 'block';
+        }
+
+        let lastVoidShareText = '';
+
+        async function closeVoidScreen() {
+            if (!voidStartTime) return;
+            const elapsedSeconds = Math.round((Date.now() - voidStartTime) / 1000);
+            voidStartTime = null;
+            document.getElementById('void-screen').style.display = 'none';
+
+            const minutes = Math.floor(elapsedSeconds / 60);
+            const secs = elapsedSeconds % 60;
+            const durationText = minutes > 0 ? `${minutes} min ${secs} s` : `${secs} seconde${secs > 1 ? 's' : ''}`;
+            document.getElementById('void-duration').innerText = durationText;
+
+            const badgeBox = document.getElementById('void-badge-box');
+            const shareBtns = document.getElementById('void-share-btns');
+            badgeBox.style.display = 'none';
+            shareBtns.style.display = 'none';
+
+            try {
+                const response = await fetch('/void-time', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userKey: userUniqueKey, seconds: elapsedSeconds })
+                });
+                const data = await response.json();
+
+                if (data.newBadges && data.newBadges.length > 0) {
+                    const badge = data.newBadges[data.newBadges.length - 1];
+                    document.getElementById('void-badge-name').innerText = `🕳️ ${badge.name}`;
+                    badgeBox.style.display = 'block';
+
+                    lastVoidShareText = `Je viens de devenir "${badge.name}" en contemplant le Vide sur NÉANT. 🕳️ ${durationText} passées à ne rien regarder. #NEANT`;
+                    const shareText = encodeURIComponent(lastVoidShareText);
+                    const shareUrl = encodeURIComponent(window.location.href);
+
+                    document.getElementById('void-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                    document.getElementById('void-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                    document.getElementById('void-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+                    shareBtns.style.display = 'grid';
+                }
+            } catch (err) {
+                // Pas grave si l'enregistrement échoue, on affiche quand même le résultat.
+            }
+
+            document.getElementById('void-result-modal').style.display = 'flex';
+        }
+
+        function closeVoidResultModal() {
+            document.getElementById('void-result-modal').style.display = 'none';
+        }
+
+        document.getElementById('void-screen').addEventListener('click', closeVoidScreen);
 
         fetchLeaderboard();
     </script>
