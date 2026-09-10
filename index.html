@@ -7,10 +7,10 @@
 
     <!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://néant-officiel.fr/">
+    <meta property="og:url" content="https://xn--nant-officiel-bhb.fr/">
     <meta property="og:title" content="NÉANT. — Achetez du Rien">
     <meta property="og:description" content="Le seul concept où c'est VOUS qui décidez combien vous voulez perdre. Achetez du Néant, débloquez des badges absurdes, et affrontez le classement des Mécènes du Vide.">
-    <meta property="og:image" content="https://néant-officiel.fr/og-image.png">
+    <meta property="og:image" content="https://xn--nant-officiel-bhb.fr/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:locale" content="fr_FR">
@@ -19,7 +19,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="NÉANT. — Achetez du Rien">
     <meta name="twitter:description" content="Le seul concept où c'est VOUS qui décidez combien vous voulez perdre.">
-    <meta name="twitter:image" content="https://néant-officiel.fr/og-image.png">
+    <meta name="twitter:image" content="https://xn--nant-officiel-bhb.fr/og-image.png">
 
     <!-- Integration Stripe.js -->
     <script src="https://js.stripe.com/v3/"></script>
@@ -378,9 +378,10 @@
                 <a id="void-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
                 <a id="void-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
                 <a id="void-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
-                <button onclick="copyForInstaTikTok('Instagram', lastVoidShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
-                <button onclick="copyForInstaTikTok('TikTok', lastVoidShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                <button onclick="copyForInstaTikTok('Instagram', lastVoidShareText, 'void-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                <button onclick="copyForInstaTikTok('TikTok', lastVoidShareText, 'void-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
             </div>
+            <div id="void-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
             <button class="btn-buy" style="margin-top:15px;" onclick="closeVoidResultModal()">Fermer</button>
         </div>
     </div>
@@ -427,9 +428,10 @@
                     <a id="shake-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
                     <a id="shake-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
                     <a id="shake-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
-                    <button onclick="copyForInstaTikTok('Instagram', lastShakeShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
-                    <button onclick="copyForInstaTikTok('TikTok', lastShakeShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Instagram', lastShakeShareText, 'shake-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastShakeShareText, 'shake-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
                 </div>
+                <div id="shake-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
                 <button class="btn-buy" style="margin-top:15px;" onclick="closeShakeGame()">Fermer</button>
             </div>
         </div>
@@ -492,9 +494,10 @@
                     <a id="click-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
                     <a id="click-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
                     <a id="click-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
-                    <button onclick="copyForInstaTikTok('Instagram', lastClickShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
-                    <button onclick="copyForInstaTikTok('TikTok', lastClickShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Instagram', lastClickShareText, 'click-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastClickShareText, 'click-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
                 </div>
+                <div id="click-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
                 <button class="btn-buy" style="margin-top:15px;" onclick="closeClickChallenge()">Fermer</button>
             </div>
         </div>
@@ -860,26 +863,39 @@
             }, 100);
         }
 
-        function copyForInstaTikTok(platform, customText) {
+        function copyForInstaTikTok(platform, customText, toastId) {
             const totalSpent = purchases.reduce((sum, p) => sum + p.price, 0).toFixed(2);
             const textToCopy = customText || `Marre des placements qui rapportent des miettes ? Je viens d'acheter ${totalSpent}€ de NÉANT. La meilleure décision de ma vie. 💸🎁 #NEANT #AchatDuFutur`;
 
-            navigator.clipboard.writeText(textToCopy).then(() => {
-                const toast = document.getElementById('copy-toast') || document.getElementById('void-copy-toast');
-                if (toast) {
-                    toast.innerText = `✨ Texte copié ! Redirection vers ${platform}...`;
-                    toast.style.display = 'block';
-                }
+            // window.open() doit être appelé de façon synchrone, dans le même
+            // "tick" que le clic, sinon les navigateurs le bloquent en
+            // silence (le considérant comme non déclenché par l'utilisateur).
+            // On l'ouvre donc immédiatement, et on copie le texte en parallèle.
+            const win = platform === 'Instagram'
+                ? window.open('https://instagram.com', '_blank', 'noopener,noreferrer')
+                : window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
 
-                setTimeout(() => {
-                    if (platform === 'Instagram') {
-                        window.open('https://instagram.com', '_blank', 'noopener,noreferrer');
-                    } else if (platform === 'TikTok') {
-                        window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
-                    }
-                    if (toast) toast.style.display = 'none';
-                }, 1000);
+            // L'id du toast est passé explicitement par chaque bouton (chaque
+            // modale a le sien) : 'copy-toast' existe en permanence dans le DOM
+            // même quand sa modale est fermée, donc un simple fallback risquait
+            // toujours de le trouver en premier et d'afficher la confirmation
+            // dans la mauvaise modale.
+            const toast = document.getElementById(toastId || 'copy-toast');
+
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                if (toast) {
+                    toast.innerText = `✨ Texte copié ! Colle-le dans ta story ${platform}.`;
+                    toast.style.display = 'block';
+                    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+                }
+            }).catch(() => {
+                // Si la copie échoue (permission refusée, contexte non sécurisé...),
+                // l'app est déjà ouverte grâce à l'appel synchrone ci-dessus.
             });
+
+            if (!win) {
+                alert("Ton navigateur a bloqué l'ouverture. Autorise les pop-ups pour ce site, ou ouvre l'app manuellement.");
+            }
         }
 
         function renderAndShowInvoice() {
