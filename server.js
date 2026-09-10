@@ -192,22 +192,35 @@ app.post('/create-payment-intent', async (req, res) => {
 // Endpoint : génère le certificat PDF d'achat de Néant.
 app.post('/certificate', async (req, res) => {
     try {
-        const { paymentIntentId, pseudo } = req.body;
+        const { paymentIntentId, paymentIntentIds, pseudo } = req.body;
 
-        if (!paymentIntentId) {
+        // Accepte soit un seul ID (rétrocompatibilité), soit un tableau
+        // (achat + upsell de la même session) — on additionne les montants
+        // réellement payés selon Stripe, jamais une valeur envoyée par le client.
+        const ids = Array.isArray(paymentIntentIds) && paymentIntentIds.length > 0
+            ? paymentIntentIds
+            : (paymentIntentId ? [paymentIntentId] : []);
+
+        if (ids.length === 0) {
             return res.status(400).send({ error: 'paymentIntentId manquant.' });
         }
 
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        let totalCents = 0;
+        let firstPaymentIntent = null;
 
-        if (paymentIntent.status !== 'succeeded') {
-            return res.status(400).send({ error: 'Paiement non confirmé.' });
+        for (const id of ids) {
+            const paymentIntent = await stripe.paymentIntents.retrieve(id);
+            if (paymentIntent.status !== 'succeeded') {
+                return res.status(400).send({ error: 'Paiement non confirmé.' });
+            }
+            totalCents += paymentIntent.amount;
+            if (!firstPaymentIntent) firstPaymentIntent = paymentIntent;
         }
 
-        const amount = (paymentIntent.amount / 100).toFixed(2);
+        const amount = (totalCents / 100).toFixed(2);
         const safePseudo = (pseudo || 'Mécène Anonyme').toString().slice(0, 40);
-        const certifNumber = 'NEANT-' + paymentIntent.id.slice(-8).toUpperCase();
-        const date = new Date(paymentIntent.created * 1000).toLocaleDateString('fr-FR', {
+        const certifNumber = 'NEANT-' + firstPaymentIntent.id.slice(-8).toUpperCase();
+        const date = new Date(firstPaymentIntent.created * 1000).toLocaleDateString('fr-FR', {
             year: 'numeric', month: 'long', day: 'numeric'
         });
 

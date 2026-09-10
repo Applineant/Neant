@@ -898,7 +898,7 @@
                 const response = await fetch('/certificate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ paymentIntentId: lastPaymentIntentId, pseudo })
+                    body: JSON.stringify({ paymentIntentIds: sessionPaymentIntentIds.length > 0 ? sessionPaymentIntentIds : [lastPaymentIntentId], pseudo })
                 });
 
                 if (!response.ok) throw new Error('Échec de la génération du certificat.');
