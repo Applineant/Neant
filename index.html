@@ -369,6 +369,7 @@
 
             <div style="margin: 10px 0;">
                 <button class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border); margin-bottom:8px;" onclick="openPaymentModal('upsell')">⚡ Recharger 10s de rien (+1,00 €)</button>
+                <button id="certificate-btn" class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border);" onclick="downloadCertificate()">📜 Télécharger mon certificat de Néant</button>
             </div>
 
             <!-- Partage Réseaux Sociaux -->
@@ -391,7 +392,7 @@
 
     <script>
         // Remplace par ta propre clé publique Stripe (pk_live_... ou pk_test_...)
-        const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ');
+        const stripe = Stripe('pk_live_VOTRE_CLE_PUBLIQUE_ICI');
 
         // Les montants ne sont JAMAIS envoyés en clair depuis le client :
         // on envoie un identifiant de "tier", le serveur seul connaît le prix réel
@@ -408,6 +409,7 @@
         let initialTier = 'base';
         let pendingTier = 'base';
         let purchases = [];
+        let lastPaymentIntentId = null;
         let invoiceNumber = Math.floor(1000 + Math.random() * 9000);
         let currentDuration = 5;
 
@@ -524,6 +526,7 @@
                 closePaymentModal();
                 btn.disabled = false;
                 btn.innerText = "Valider le paiement";
+                lastPaymentIntentId = paymentIntent.id;
 
                 const tier = TIERS[pendingTier];
 
@@ -650,6 +653,41 @@
             document.getElementById('share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
 
             document.getElementById('invoice-modal').style.display = 'flex';
+        }
+
+        async function downloadCertificate() {
+            if (!lastPaymentIntentId) return;
+
+            const btn = document.getElementById('certificate-btn');
+            const pseudo = document.getElementById('user-pseudo').value.trim() || 'Mécène Anonyme';
+
+            btn.disabled = true;
+            btn.innerText = "Génération du certificat...";
+
+            try {
+                const response = await fetch('/certificate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentIntentId: lastPaymentIntentId, pseudo })
+                });
+
+                if (!response.ok) throw new Error('Échec de la génération du certificat.');
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'certificat-neant.pdf';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert("Impossible de générer le certificat pour l'instant.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "📜 Télécharger mon certificat de Néant";
+            }
         }
 
         function closeAndSaveLeaderboard() {
