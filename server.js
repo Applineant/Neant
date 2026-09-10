@@ -4,8 +4,10 @@ const path = require('path');
 const PDFDocument = require('pdfkit');
 
 // Récupération de la clé Stripe depuis les variables d'environnement Render
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY, {
+    maxNetworkRetries: 0,
+    timeout: 20000
+});
 const app = express();
 app.use(cors());
 app.use(express.json());
