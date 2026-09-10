@@ -316,6 +316,8 @@
 
         <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openChaseGame()">🎯 Chassez le Rien</button>
 
+        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openClickChallenge()">👆 Défi du Clic (5s pour rien)</button>
+
         <button class="btn-buy" style="background:#1c1c1c; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openMyBadges()">🏅 Mes badges</button>
 
         <div class="leaderboard-box">
@@ -404,9 +406,53 @@
 
                 <div class="leaderboard-title" style="margin-top:20px;">🎯 Chasse au Rien</div>
                 <div id="badges-chase-list"></div>
+
+                <div class="leaderboard-title" style="margin-top:20px;">👆 Défi du Clic</div>
+                <div id="badges-click-list"></div>
             </div>
 
             <button class="btn-buy" style="margin-top:20px;" onclick="closeMyBadges()">Fermer</button>
+        </div>
+    </div>
+
+    <!-- MODALE : DÉFI DU CLIC -->
+    <div id="click-modal" class="modal-overlay">
+        <div class="modal">
+            <div id="click-intro-step">
+                <div style="font-size:2.5rem; margin-bottom:10px;">👆</div>
+                <h3>DÉFI DU CLIC</h3>
+                <p style="font-size:0.85rem; color:var(--dim); margin:12px 0 20px 0;">
+                    Cliquez (ou touchez l'écran) le plus vite possible pendant 5 secondes. Pour rien.
+                </p>
+                <button class="btn-buy" onclick="startClickChallenge()">Commencer</button>
+                <button onclick="closeClickChallenge()" style="background:none; border:none; color:var(--dim); margin-top:10px; font-size:0.8rem; cursor:pointer; display:block; width:100%;">Annuler</button>
+            </div>
+
+            <div id="click-play-step" style="display:none;">
+                <p style="font-size:0.75rem; color:var(--dim);">Temps restant : <strong id="click-timer" style="color:#fff;">5.0</strong> s</p>
+                <div id="click-count-display" style="font-size:3rem; font-weight:bold; margin:15px 0;">0</div>
+                <button id="click-target-btn" class="btn-buy" style="padding:30px 0; font-size:1.3rem;" onclick="registerClickTap()">CLIQUEZ</button>
+            </div>
+
+            <div id="click-result-step" style="display:none;">
+                <div style="font-size:2.5rem; margin-bottom:10px;">👆</div>
+                <h3>TERMINÉ</h3>
+                <p style="font-size:0.9rem; color:var(--dim); margin:12px 0;">
+                    <strong id="click-final-count" style="color:#fff; font-size:1.3rem;">0</strong> clics pour absolument rien.
+                </p>
+                <div id="click-badge-box" style="display:none; margin:15px 0; padding:14px; background:#1c1c1c; border:1px solid var(--border); border-radius:10px;">
+                    <div style="font-size:0.7rem; color:var(--dim); text-transform:uppercase; letter-spacing:1px;">Nouveau badge débloqué</div>
+                    <div id="click-badge-name" style="font-size:1.2rem; font-weight:bold; margin-top:6px;"></div>
+                </div>
+                <div class="share-btns" id="click-share-btns" style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                    <a id="click-share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="click-share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="click-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
+                    <button onclick="copyForInstaTikTok('Instagram', lastClickShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
+                    <button onclick="copyForInstaTikTok('TikTok', lastClickShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                </div>
+                <button class="btn-buy" style="margin-top:15px;" onclick="closeClickChallenge()">Fermer</button>
+            </div>
         </div>
     </div>
 
@@ -1074,6 +1120,8 @@
                 renderBadgeList('badges-void-list', data.void, voidCurrent, (t) => t < 60 ? t + ' s' : Math.floor(t / 60) + ' min');
 
                 renderBadgeList('badges-chase-list', data.chase);
+
+                renderBadgeList('badges-click-list', data.click, `Meilleur score actuel : ${data.clickBest} clics`, (t) => t + ' clics');
             } catch (err) {
                 document.getElementById('badges-purchase-list').innerHTML = '<div style="font-size:0.8rem; color:var(--dim);">Impossible de charger la progression.</div>';
             }
@@ -1081,6 +1129,80 @@
 
         function closeMyBadges() {
             document.getElementById('badges-modal').style.display = 'none';
+        }
+
+        // --- Défi du Clic (5 secondes) ---
+        let clickCount = 0;
+        let clickTimerInterval = null;
+        let lastClickShareText = '';
+
+        function openClickChallenge() {
+            document.getElementById('click-intro-step').style.display = 'block';
+            document.getElementById('click-play-step').style.display = 'none';
+            document.getElementById('click-result-step').style.display = 'none';
+            document.getElementById('click-badge-box').style.display = 'none';
+            document.getElementById('click-modal').style.display = 'flex';
+        }
+
+        function closeClickChallenge() {
+            if (clickTimerInterval) clearInterval(clickTimerInterval);
+            document.getElementById('click-modal').style.display = 'none';
+        }
+
+        function startClickChallenge() {
+            clickCount = 0;
+            document.getElementById('click-count-display').innerText = '0';
+            document.getElementById('click-intro-step').style.display = 'none';
+            document.getElementById('click-play-step').style.display = 'block';
+
+            let timeLeft = 5.0;
+            document.getElementById('click-timer').innerText = timeLeft.toFixed(1);
+
+            clickTimerInterval = setInterval(() => {
+                timeLeft -= 0.1;
+                if (timeLeft <= 0) {
+                    timeLeft = 0;
+                    clearInterval(clickTimerInterval);
+                    finishClickChallenge();
+                }
+                document.getElementById('click-timer').innerText = Math.max(0, timeLeft).toFixed(1);
+            }, 100);
+        }
+
+        function registerClickTap() {
+            clickCount++;
+            document.getElementById('click-count-display').innerText = clickCount;
+        }
+
+        async function finishClickChallenge() {
+            document.getElementById('click-play-step').style.display = 'none';
+            document.getElementById('click-result-step').style.display = 'block';
+            document.getElementById('click-final-count').innerText = clickCount;
+
+            try {
+                const response = await fetch('/click-challenge', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userKey: userUniqueKey, clicks: clickCount })
+                });
+                const data = await response.json();
+
+                lastClickShareText = `J'ai fait ${clickCount} clics en 5 secondes pour absolument rien sur NÉANT. 👆 #NEANT`;
+                const shareText = encodeURIComponent(lastClickShareText);
+                const shareUrl = encodeURIComponent(window.location.href);
+
+                document.getElementById('click-share-tw').href = `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}`;
+                document.getElementById('click-share-wa').href = `https://api.whatsapp.com/send?text=${shareText}%20${shareUrl}`;
+                document.getElementById('click-share-fb').href = `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}&quote=${shareText}`;
+
+                if (data.newBadges && data.newBadges.length > 0) {
+                    const badge = data.newBadges[data.newBadges.length - 1];
+                    document.getElementById('click-badge-name').innerText = `👆 ${badge.name}`;
+                    document.getElementById('click-badge-box').style.display = 'block';
+                }
+            } catch (err) {
+                // Pas grave si l'enregistrement échoue, on affiche quand même le résultat.
+            }
         }
 
         fetchLeaderboard();
