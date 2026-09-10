@@ -225,7 +225,7 @@
         }
 
         .share-title { font-size: 0.75rem; color: var(--dim); margin-bottom: 10px; }
-        
+
         .btn-share {
             padding: 8px;
             border-radius: 6px;
@@ -264,7 +264,7 @@
 
     <div class="container">
         <h1>NÉANT.</h1>
-        
+
         <div class="tagline">
             Marre d'investir dans des placements qui rapportent des miettes&nbsp;? Vous avez tout perdu en vous prenant pour un trader de crypto ou d'actions&nbsp;?<br><br>
             <strong>Achetez du NÉANT.</strong><br>
@@ -272,7 +272,7 @@
         </div>
 
         <div class="products">
-            <div class="card selected" onclick="selectTier(this, 'Achat Initial de Néant', '1.00', false)">
+            <div class="card selected" data-tier="base" onclick="selectTier(this, 'Achat Initial de Néant', 'base', false)">
                 <div class="card-header">
                     <div class="title">1 € POUR DU RIEN</div>
                     <div class="price">1,00 €</div>
@@ -280,7 +280,7 @@
                 <div class="desc">1€ pour du rien, on sait faire. Vous payez 1€, on ne vous donne rien. Honnêteté absolue.</div>
             </div>
 
-            <div class="card" onclick="selectTier(this, 'Cadeau d\'Anniversaire Néant', '2.50', true)">
+            <div class="card" data-tier="birthday" onclick="selectTier(this, 'Cadeau d\'Anniversaire Néant', 'birthday', true)">
                 <div class="card-header">
                     <div class="title">🎂 CADEAU D'ANNIVERSAIRE</div>
                     <div class="price">2,50 €</div>
@@ -288,7 +288,7 @@
                 <div class="desc">Offrir un rien d'anniversaire ? Pas de souci, on s'en occupe ! Le cadeau ultime pour celui qui a déjà tout.</div>
             </div>
 
-            <div class="card" onclick="selectTier(this, 'Flex Dopaminergique', '5.00', false)">
+            <div class="card" data-tier="dopamine" onclick="selectTier(this, 'Flex Dopaminergique', 'dopamine', false)">
                 <div class="card-header">
                     <div class="title">⚡ SHOT DE DOPAMINE</div>
                     <div class="price">5,00 €</div>
@@ -297,7 +297,7 @@
             </div>
         </div>
 
-        <button class="btn-buy" onclick="openPaymentModal(initialPrice)">Acheter <span id="btn-price">1.00</span> € de Néant 💸</button>
+        <button class="btn-buy" onclick="openPaymentModal(initialTier)">Acheter <span id="btn-price">1.00</span> € de Néant 💸</button>
 
         <div class="leaderboard-box">
             <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
@@ -310,7 +310,7 @@
         <div class="modal">
             <h3>Paiement Sécurisé</h3>
             <p style="font-size:0.8rem; color:var(--dim); margin-top:4px;">Montant débité : <strong id="pay-amount-display" style="color:#fff;">1.00 €</strong></p>
-            
+
             <div id="payment-element"></div>
             <div id="card-errors" style="color: #fa755a; font-size:0.75rem; margin-bottom:10px;"></div>
 
@@ -364,19 +364,19 @@
 
             <div style="margin-top:15px; text-align:left;">
                 <label style="font-size:0.75rem; color:var(--dim);">Votre pseudonyme au classement :</label>
-                <input type="text" id="user-pseudo" class="input-pseudo" placeholder="Ex: Mécène_Anonyme">
+                <input type="text" id="user-pseudo" class="input-pseudo" placeholder="Ex: Mécène_Anonyme" maxlength="30">
             </div>
 
             <div style="margin: 10px 0;">
-                <button class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border); margin-bottom:8px;" onclick="openPaymentModal(1.00, true)">⚡ Recharger 10s de rien (+1,00 €)</button>
+                <button class="btn-buy" style="background:#222; color:#fff; border:1px solid var(--border); margin-bottom:8px;" onclick="openPaymentModal('upsell')">⚡ Recharger 10s de rien (+1,00 €)</button>
             </div>
 
             <!-- Partage Réseaux Sociaux -->
             <div class="share-box">
                 <div class="share-title">📢 Proclamer votre futilité</div>
                 <div class="share-btns" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <a id="share-tw" target="_blank" class="btn-share btn-tw">X (Twitter)</a>
-                    <a id="share-wa" target="_blank" class="btn-share btn-wa">WhatsApp</a>
+                    <a id="share-tw" target="_blank" rel="noopener noreferrer" class="btn-share btn-tw">X (Twitter)</a>
+                    <a id="share-wa" target="_blank" rel="noopener noreferrer" class="btn-share btn-wa">WhatsApp</a>
                     <button onclick="copyForInstaTikTok('Instagram')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
                 </div>
@@ -390,15 +390,23 @@
     </div>
 
     <script>
-        const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ'); 
-        
+        // Remplace par ta propre clé publique Stripe (pk_live_... ou pk_test_...)
+        const stripe = Stripe('pk_live_51UBait2dGZTbFeameuGoBUsaX2PAqydIQYavGPFqlYLu8qJvnEpkSLAjAUfdslN4IoWdsvdeX6L7cbh4t1mYXFwT00Li89Y8GZ');
+
+        // Les montants ne sont JAMAIS envoyés en clair depuis le client :
+        // on envoie un identifiant de "tier", le serveur seul connaît le prix réel
+        // et le valide contre une whitelist (voir server.js corrigé).
+        const TIERS = {
+            base:     { name: 'Achat Initial de Néant',    price: 1.00, birthday: false, upsell: false },
+            birthday: { name: "Cadeau d'Anniversaire Néant", price: 2.50, birthday: true,  upsell: false },
+            dopamine: { name: 'Flex Dopaminergique',        price: 5.00, birthday: false, upsell: false },
+            upsell:   { name: 'Rallonge de Néant',          price: 1.00, birthday: false, upsell: true  }
+        };
+
         let elements;
         let paymentElement;
-        let selectedItemName = "Achat Initial de Néant";
-        let initialPrice = 1.00;
-        let pendingAmount = 1.00;
-        let isBirthday = false;
-        let isUpsell = false;
+        let initialTier = 'base';
+        let pendingTier = 'base';
         let purchases = [];
         let invoiceNumber = Math.floor(1000 + Math.random() * 9000);
         let currentDuration = 5;
@@ -413,6 +421,14 @@
             { key: "#1042", name: "Minimaliste_Extreme", amount: 6.00 }
         ];
 
+        // Échappement anti-XSS : les pseudos sont fournis par les utilisateurs
+        // et ne doivent jamais être injectés tels quels dans le HTML.
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
         function renderLeaderboard() {
             const listEl = document.getElementById('leaderboard-list');
             listEl.innerHTML = '';
@@ -423,26 +439,24 @@
                 row.className = 'leaderboard-item';
                 row.innerHTML = `
                     <span class="rank ${index === 0 ? 'rank-1' : ''}">#${index + 1}</span>
-                    <span class="user-name">${item.name}<span class="user-tag">${item.key}</span></span>
+                    <span class="user-name">${escapeHtml(item.name)}<span class="user-tag">${escapeHtml(item.key)}</span></span>
                     <span class="amount-spent">${item.amount.toFixed(2)} €</span>
                 `;
                 listEl.appendChild(row);
             });
         }
 
-        function selectTier(element, name, price, birthday) {
+        function selectTier(element, name, tierId) {
             document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
             element.classList.add('selected');
-            selectedItemName = name;
-            initialPrice = parseFloat(price);
-            isBirthday = birthday;
-            document.getElementById('btn-price').innerText = price;
+            initialTier = tierId;
+            document.getElementById('btn-price').innerText = TIERS[tierId].price.toFixed(2);
         }
 
-        async function openPaymentModal(amount, upsell = false) {
-            pendingAmount = amount;
-            isUpsell = upsell;
-            document.getElementById('pay-amount-display').innerText = amount.toFixed(2) + " €";
+        async function openPaymentModal(tierId) {
+            pendingTier = tierId;
+            const tier = TIERS[tierId];
+            document.getElementById('pay-amount-display').innerText = tier.price.toFixed(2) + " €";
             document.getElementById('card-errors').innerText = "";
             document.getElementById('invoice-modal').style.display = 'none';
             document.getElementById('payment-modal').style.display = 'flex';
@@ -452,15 +466,19 @@
             btn.innerText = "Chargement des moyens de paiement...";
 
             try {
+                // On envoie l'identifiant du tier, pas le montant : le serveur
+                // détermine le vrai prix et le valide lui-même.
                 const response = await fetch('/create-payment-intent', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ amount: pendingAmount })
+                    body: JSON.stringify({ tier: tierId })
                 });
                 const data = await response.json();
 
                 if (data.error) {
                     document.getElementById('card-errors').innerText = data.error;
+                    btn.disabled = false;
+                    btn.innerText = "Valider le paiement";
                     return;
                 }
 
@@ -476,6 +494,8 @@
                 btn.innerText = "Valider le paiement";
             } catch (err) {
                 document.getElementById('card-errors').innerText = "Erreur lors de la connexion avec le serveur.";
+                btn.disabled = false;
+                btn.innerText = "Valider le paiement";
             }
         }
 
@@ -497,23 +517,30 @@
                 document.getElementById('card-errors').innerText = error.message;
                 btn.disabled = false;
                 btn.innerText = "Valider le paiement";
-            } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+                return;
+            }
+
+            if (paymentIntent && paymentIntent.status === 'succeeded') {
                 closePaymentModal();
                 btn.disabled = false;
                 btn.innerText = "Valider le paiement";
 
-                if (!isUpsell) {
-                    purchases = [{ name: selectedItemName, detail: "5s de Silence HD", price: pendingAmount }];
-                    openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement');
+                const tier = TIERS[pendingTier];
+
+                if (!tier.upsell) {
+                    purchases = [{ name: tier.name, detail: "5s de Silence HD", price: tier.price }];
+                    openPlayer(5, '5 SECONDES DE NÉANT (AUDIO HD)', 'Piste 01 — Silence Absolu', 'Votre cadeau de remerciement', pendingTier);
                 } else {
-                    purchases.push({ name: "Rallonge de Néant", detail: "10s de Silence Supérieur", price: pendingAmount });
-                    openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours');
+                    purchases.push({ name: tier.name, detail: "10s de Silence Supérieur", price: tier.price });
+                    openPlayer(10, '10 SECONDES DE NÉANT (EXTENDED)', 'Piste 02 — Silence Élargi', 'Ascension au classement en cours', pendingTier);
                 }
             }
         }
 
-        function openPlayer(duration, title, subtitle, topText) {
+        function openPlayer(duration, title, subtitle, topText, tierId) {
             currentDuration = duration;
+            const tier = TIERS[tierId];
+
             document.getElementById('player-subtitle').innerText = topText;
             document.getElementById('track-title').innerText = title;
             document.getElementById('track-sub').innerText = subtitle;
@@ -522,12 +549,12 @@
             document.getElementById('current-time').innerText = '0:00';
             document.getElementById('play-btn').innerText = '▶';
             document.getElementById('play-btn').disabled = false;
-            
-            if(isBirthday) {
+
+            if (tier.birthday) {
                 document.getElementById('gift-icon').innerText = "🎂";
                 document.getElementById('gift-title').innerText = "JOYEUX ANNIVERSAIRE !";
                 document.getElementById('gift-message').innerText = "C'est votre anniversaire ? Quelqu'un vous aime assez pour vous offrir l'élément le plus précieux au monde : absolument rien.";
-            } else if(isUpsell) {
+            } else if (tier.upsell) {
                 document.getElementById('gift-icon').innerText = "⚡";
                 document.getElementById('gift-title').innerText = "RALLONGE DE NÉANT";
                 document.getElementById('gift-message').innerText = "Votre fidélité au vide est exemplaire. Voici vos 10 secondes supplémentaires de rien absolu.";
@@ -551,7 +578,7 @@
             const playBtn = document.getElementById('play-btn');
             const progressBar = document.getElementById('progress');
             const currentTimeEl = document.getElementById('current-time');
-            
+
             playBtn.innerText = '⏸';
             playBtn.disabled = true;
 
@@ -583,9 +610,9 @@
 
                 setTimeout(() => {
                     if (platform === 'Instagram') {
-                        window.open('https://instagram.com', '_blank');
+                        window.open('https://instagram.com', '_blank', 'noopener,noreferrer');
                     } else if (platform === 'TikTok') {
-                        window.open('https://tiktok.com', '_blank');
+                        window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
                     }
                     toast.style.display = 'none';
                 }, 1000);
@@ -603,8 +630,8 @@
                 line.className = 'invoice-line';
                 line.innerHTML = `
                     <div>
-                        <div><strong>${p.name}</strong></div>
-                        <div style="font-size:0.7rem; color:#666;">${p.detail}</div>
+                        <div><strong>${escapeHtml(p.name)}</strong></div>
+                        <div style="font-size:0.7rem; color:#666;">${escapeHtml(p.detail)}</div>
                     </div>
                     <div>${p.price.toFixed(2)} €</div>
                 `;
@@ -627,8 +654,8 @@
 
         function closeAndSaveLeaderboard() {
             const pseudoInput = document.getElementById('user-pseudo').value.trim();
-            const finalPseudo = pseudoInput !== "" ? pseudoInput : "Mécène_Anonyme";
-            
+            const finalPseudo = pseudoInput !== "" ? pseudoInput.slice(0, 30) : "Mécène_Anonyme";
+
             localStorage.setItem('neant_user_name', finalPseudo);
             let totalSpent = purchases.reduce((sum, p) => sum + p.price, 0);
 
