@@ -48,8 +48,9 @@ app.post('/create-payment-intent', async (req, res) => {
             },
         });
         res.send({ clientSecret: paymentIntent.client_secret });
-    } catch (error) {
-        res.status(500).send({ error: error.message });
+     } catch (error) {
+        console.error('Erreur Stripe complète :', error);
+        res.status(500).send({ error: error.message, code: error.code, type: error.type });
     }
 });
 
