@@ -312,17 +312,26 @@
 
         <button class="btn-buy" onclick="openPaymentModal(initialTier)">Acheter <span id="btn-price">1.00</span> € de Néant 💸</button>
 
-        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openVoidScreen()">🕳️ Cliquez ici pour ne rien voir</button>
-
-        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openChaseGame()">🎯 Chassez le Rien</button>
-
-        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openClickChallenge()">👆 Défi du Clic (5s pour rien)</button>
+        <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openGamesMenu()">🎮 Défis</button>
 
         <button class="btn-buy" style="background:#1c1c1c; color:#fff; border:1px solid var(--border); margin-top:12px;" onclick="openMyBadges()">🏅 Mes badges</button>
 
         <div class="leaderboard-box">
             <div class="leaderboard-title">🏆 Classement des Mécènes du Vide</div>
             <div id="leaderboard-list"></div>
+            <div id="leaderboard-toggle" onclick="toggleLeaderboardExpand()" style="text-align:center; font-size:0.75rem; color:var(--dim); margin-top:8px; text-decoration:underline; cursor:pointer;">Voir tout le classement</div>
+        </div>
+    </div>
+
+    <!-- MODALE : MENU DES DÉFIS -->
+    <div id="games-menu-modal" class="modal-overlay">
+        <div class="modal">
+            <h3>🎮 CHOISISSEZ VOTRE DÉFI</h3>
+            <p style="font-size:0.8rem; color:var(--dim); margin:10px 0 18px 0;">Trois façons différentes de ne rien gagner.</p>
+            <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-bottom:10px;" onclick="closeGamesMenu(); openVoidScreen();">🕳️ Cliquez ici pour ne rien voir</button>
+            <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border); margin-bottom:10px;" onclick="closeGamesMenu(); openChaseGame();">🎯 Chassez le Rien</button>
+            <button class="btn-buy" style="background:#000; color:#fff; border:1px solid var(--border);" onclick="closeGamesMenu(); openClickChallenge();">👆 Défi du Clic (5s pour rien)</button>
+            <button onclick="closeGamesMenu()" style="background:none; border:none; color:var(--dim); margin-top:15px; font-size:0.8rem; cursor:pointer;">Annuler</button>
         </div>
     </div>
 
@@ -596,12 +605,16 @@
             renderLeaderboard();
         }
 
+        let leaderboardExpanded = false;
+
         function renderLeaderboard() {
             const listEl = document.getElementById('leaderboard-list');
             listEl.innerHTML = '';
             leaderboard.sort((a, b) => b.amount - a.amount);
 
-            leaderboard.slice(0, 5).forEach((item, index) => {
+            const limit = leaderboardExpanded ? 20 : 3;
+
+            leaderboard.slice(0, limit).forEach((item, index) => {
                 const row = document.createElement('div');
                 row.className = 'leaderboard-item';
                 row.innerHTML = `
@@ -611,6 +624,27 @@
                 `;
                 listEl.appendChild(row);
             });
+
+            const toggle = document.getElementById('leaderboard-toggle');
+            if (leaderboard.length <= 3) {
+                toggle.style.display = 'none';
+            } else {
+                toggle.style.display = 'block';
+                toggle.innerText = leaderboardExpanded ? 'Réduire le classement' : 'Voir tout le classement';
+            }
+        }
+
+        function toggleLeaderboardExpand() {
+            leaderboardExpanded = !leaderboardExpanded;
+            renderLeaderboard();
+        }
+
+        function openGamesMenu() {
+            document.getElementById('games-menu-modal').style.display = 'flex';
+        }
+
+        function closeGamesMenu() {
+            document.getElementById('games-menu-modal').style.display = 'none';
         }
 
         function selectTier(element, name, tierId) {
