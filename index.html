@@ -867,14 +867,6 @@
             const totalSpent = purchases.reduce((sum, p) => sum + p.price, 0).toFixed(2);
             const textToCopy = customText || `Marre des placements qui rapportent des miettes ? Je viens d'acheter ${totalSpent}€ de NÉANT. La meilleure décision de ma vie. 💸🎁 #NEANT #AchatDuFutur`;
 
-            // window.open() doit être appelé de façon synchrone, dans le même
-            // "tick" que le clic, sinon les navigateurs le bloquent en
-            // silence (le considérant comme non déclenché par l'utilisateur).
-            // On l'ouvre donc immédiatement, et on copie le texte en parallèle.
-            const win = platform === 'Instagram'
-                ? window.open('https://instagram.com', '_blank', 'noopener,noreferrer')
-                : window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
-
             // L'id du toast est passé explicitement par chaque bouton (chaque
             // modale a le sien) : 'copy-toast' existe en permanence dans le DOM
             // même quand sa modale est fermée, donc un simple fallback risquait
@@ -882,6 +874,11 @@
             // dans la mauvaise modale.
             const toast = document.getElementById(toastId || 'copy-toast');
 
+            // Important : on copie AVANT d'ouvrir l'app. navigator.clipboard
+            // exige que le document ait le focus au moment de l'appel ; si on
+            // ouvrait d'abord une nouvelle fenêtre/onglet (window.open), la
+            // page perd le focus et la copie échoue silencieusement, surtout
+            // sur iOS Safari.
             navigator.clipboard.writeText(textToCopy).then(() => {
                 if (toast) {
                     toast.innerText = `✨ Texte copié ! Colle-le dans ta story ${platform}.`;
@@ -890,8 +887,15 @@
                 }
             }).catch(() => {
                 // Si la copie échoue (permission refusée, contexte non sécurisé...),
-                // l'app est déjà ouverte grâce à l'appel synchrone ci-dessus.
+                // l'app s'ouvre quand même juste après.
             });
+
+            // window.open() doit rester appelé de façon synchrone, dans le même
+            // "tick" que le clic, sinon les navigateurs le bloquent en silence
+            // (le considérant comme non déclenché par l'utilisateur).
+            const win = platform === 'Instagram'
+                ? window.open('https://instagram.com', '_blank', 'noopener,noreferrer')
+                : window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
 
             if (!win) {
                 alert("Ton navigateur a bloqué l'ouverture. Autorise les pop-ups pour ce site, ou ouvre l'app manuellement.");
