@@ -380,6 +380,7 @@
                 <a id="void-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                 <button onclick="copyForInstaTikTok('Instagram', lastVoidShareText, 'void-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                 <button onclick="copyForInstaTikTok('TikTok', lastVoidShareText, 'void-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                <button onclick="copyForInstaTikTok('Discord', lastVoidShareText, 'void-copy-toast')" class="btn-share" style="background: #5865F2;">Discord</button>
             </div>
             <div id="void-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
             <button class="btn-buy" style="margin-top:15px;" onclick="closeVoidResultModal()">Fermer</button>
@@ -430,6 +431,7 @@
                     <a id="shake-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                     <button onclick="copyForInstaTikTok('Instagram', lastShakeShareText, 'shake-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok', lastShakeShareText, 'shake-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Discord', lastShakeShareText, 'shake-copy-toast')" class="btn-share" style="background: #5865F2;">Discord</button>
                 </div>
                 <div id="shake-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
                 <button class="btn-buy" style="margin-top:15px;" onclick="closeShakeGame()">Fermer</button>
@@ -496,6 +498,7 @@
                     <a id="click-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                     <button onclick="copyForInstaTikTok('Instagram', lastClickShareText, 'click-copy-toast')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok', lastClickShareText, 'click-copy-toast')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Discord', lastClickShareText, 'click-copy-toast')" class="btn-share" style="background: #5865F2;">Discord</button>
                 </div>
                 <div id="click-copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;"></div>
                 <button class="btn-buy" style="margin-top:15px;" onclick="closeClickChallenge()">Fermer</button>
@@ -574,6 +577,7 @@
                     <a id="cert-share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                     <button onclick="copyForInstaTikTok('Instagram', lastCertShareText)" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok', lastCertShareText)" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Discord', lastCertShareText)" class="btn-share" style="background: #5865F2;">Discord</button>
                 </div>
             </div>
 
@@ -591,6 +595,7 @@
                     <a id="share-fb" target="_blank" rel="noopener noreferrer" class="btn-share" style="background:#1877F2;">Facebook</a>
                     <button onclick="copyForInstaTikTok('Instagram')" class="btn-share" style="background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);">Story Insta</button>
                     <button onclick="copyForInstaTikTok('TikTok')" class="btn-share" style="background: #000000; border: 1px solid #333;">TikTok</button>
+                    <button onclick="copyForInstaTikTok('Discord')" class="btn-share" style="background: #5865F2;">Discord</button>
                 </div>
                 <div id="copy-toast" style="font-size: 0.65rem; color: #25D366; margin-top: 6px; display: none; font-weight: bold;">
                     ✨ Texte copié ! Redirection en cours...
@@ -893,9 +898,11 @@
             // window.open() doit rester appelé de façon synchrone, dans le même
             // "tick" que le clic, sinon les navigateurs le bloquent en silence
             // (le considérant comme non déclenché par l'utilisateur).
-            const win = platform === 'Instagram'
-                ? window.open('https://instagram.com', '_blank', 'noopener,noreferrer')
-                : window.open('https://tiktok.com', '_blank', 'noopener,noreferrer');
+            let targetUrl = 'https://instagram.com';
+            if (platform === 'TikTok') targetUrl = 'https://tiktok.com';
+            if (platform === 'Discord') targetUrl = 'https://discord.com/channels/@me';
+
+            const win = window.open(targetUrl, '_blank', 'noopener,noreferrer');
 
             if (!win) {
                 alert("Ton navigateur a bloqué l'ouverture. Autorise les pop-ups pour ce site, ou ouvre l'app manuellement.");
