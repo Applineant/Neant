@@ -1256,9 +1256,10 @@
             const container = document.getElementById(containerId);
             container.innerHTML = badges.map(b => {
                 const icon = b.unlocked ? '🏆' : '🔒';
+                const requirement = typeof b.threshold === 'number' && formatFn ? formatFn(b.threshold) : null;
                 const status = b.unlocked
-                    ? 'Débloqué'
-                    : (typeof b.threshold === 'number' && formatFn ? `À atteindre : ${formatFn(b.threshold)}` : 'Verrouillé');
+                    ? (requirement ? `Débloqué — ${requirement}` : 'Débloqué')
+                    : (requirement ? `À atteindre : ${requirement}` : 'Verrouillé');
                 return `
                     <div class="badge-row ${b.unlocked ? '' : 'locked'}">
                         <span class="badge-icon">${icon}</span>
